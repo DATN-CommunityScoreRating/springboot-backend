@@ -4,10 +4,11 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.capstoneproject.server.common.constants.Constant;
 import com.capstoneproject.server.common.enums.ErrorCode;
-import com.capstoneproject.server.domain.entity.UserEntity;
 import com.capstoneproject.server.domain.repository.UserRepository;
 import com.capstoneproject.server.exception.ObjectNotFoundException;
+import com.capstoneproject.server.payload.response.LoginSuccessResponse;
 import com.capstoneproject.server.payload.response.Response;
+import com.capstoneproject.server.util.RequestUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +18,6 @@ import org.springframework.security.authentication.AuthenticationServiceExceptio
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -27,9 +27,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
@@ -40,15 +37,13 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 @Slf4j
 @RequiredArgsConstructor
 public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
-    private static final long EXPIRE_DURATION_ACCESS_TOKEN = 2 * 60 * 60 * 1000; // 1h
-    private static final long EXPIRE_DURATION_REFRESH_TOKEN = 10 * 60 * 60 * 1000; // 10hrs
+    private static final long EXPIRE_DURATION_ACCESS_TOKEN = 2L * 60 * 60 * 1000; // 1h
+    private static final long EXPIRE_DURATION_REFRESH_TOKEN = 10L * 60 * 60 * 1000; // 10hrs
 
     private final UserRepository userRepository;
 
     private final AuthenticationManager authenticationManager;
 
-    @Value("${app.security.secret.key}")
-    private String secretKey;
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException, ServletException {
         Response<Object> responseObj = Response.<Object>newBuilder()
@@ -58,6 +53,7 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
                 .setException(failed.getClass().getSimpleName())
                 .build();
         response.setContentType(APPLICATION_JSON_VALUE);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         new ObjectMapper().writeValue(response.getOutputStream(), responseObj);
     }
 
@@ -66,11 +62,9 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
         if (!request.getMethod().equals("POST")) {
             throw new AuthenticationServiceException("Authentication method not supported: " + request.getMethod());
         } else {
-            String email = request.getParameter("email");
+            String username = request.getParameter("username");
             String password = request.getParameter("password");
-            log.info("email is {}", email);
-            log.info("Password is {}", password);
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(email, password);
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password);
             return authenticationManager.authenticate(authToken);
         }
     }
@@ -93,13 +87,21 @@ public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFi
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRE_DURATION_REFRESH_TOKEN))
                 .withIssuer(request.getRequestURL().toString())
                 .sign(algorithm);
-        Map<String, Object> tokens = new HashMap<>();
-        tokens.put(Constant.ACCESS_TOKEN, access_token);
-        tokens.put(Constant.REFRESH_TOKEN, refresh_token);
-
+        var res = Response.newBuilder().setSuccess(true)
+                        .setData(LoginSuccessResponse.builder()
+                                .setAccessToken(access_token)
+                                .setRefreshToken(refresh_token)
+                                .setRole(account.getRole().getRoleName())
+                                .setName(account.getFullName())
+                                .setUsername(account.getUsername())
+                                .setStudentId(RequestUtils.blankIfNull(account.getStudentId()))
+                                .setUserId(account.getUserId())
+                                .setRoleId(account.getRole().getRoleId())
+                                .newBuilder())
+                .build();
 
         response.setContentType(APPLICATION_JSON_VALUE);
 
-        new ObjectMapper().writeValue(response.getOutputStream(), tokens);
+        new ObjectMapper().writeValue(response.getOutputStream(), res);
     }
 }
