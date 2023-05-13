@@ -1,6 +1,8 @@
 pipeline {
     agent any
-
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub_user')
+    }
     stages {
         stage('Build') {
             agent {
@@ -14,14 +16,15 @@ pipeline {
                      sh 'mvn -B -DskipTests clean package'
                 }
         }
-        stage('Test') {
+        stage('Docker build') {
             steps {
-                echo 'Testing..'
+                sh 'docker build -t anhdai0801/capstone-project-backend .'
             }
         }
-        stage('Deploy') {
+        stage('Push Docker Hub') {
             steps {
-                echo 'Deploying....'
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+                sh 'docker push anhdai0801/capstone-project-backend'
             }
         }
     }
