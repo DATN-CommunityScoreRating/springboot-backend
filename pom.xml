@@ -105,6 +105,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<finalName>springboot-backend</finalName>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>
@@ -122,6 +123,7 @@
 				</configuration>
 			</plugin>
 		</plugins>
+		<finalName>springboot-backend</finalName>
 	</build>
 	<profiles>
 		<profile>
