@@ -33,6 +33,9 @@ public class UserEntity{
     @Column(name = "full_name")
     private String fullName;
 
+    @Column(name = "student_id")
+    private String studentId;
+
     @Column(name = "email")
     private String email;
 
