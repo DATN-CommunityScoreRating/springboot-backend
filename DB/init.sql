@@ -1,3 +1,4 @@
+use community_score_bkdn;
 create table courses
 (
     course_id  bigint primary key not null auto_increment,

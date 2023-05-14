@@ -4,7 +4,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub_user')
     }
     stages {
-        stage('Build') {
+        stage('Maven build') {
             agent {
                     docker {
                         image 'maven:3.6.3-jdk-11'
@@ -25,6 +25,13 @@ pipeline {
             steps {
                 sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
                 sh 'docker push anhdai0801/capstone-project-backend'
+            }
+        }
+        stage ('Deploy with docker'){
+            steps{
+                sh 'docker pull anhdai0801/capstone-project-backend'
+                sh 'docker stop anhdai0801/capstone-backend-container || true && docker rm anhdai0801/capstone-backend-container || true'
+                sh 'docker run -dp 9090:8080 --name capstone-backend-container anhdai0801/capstone-project-backend'
             }
         }
     }
