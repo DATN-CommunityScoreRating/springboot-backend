@@ -42,7 +42,7 @@ public class UserController {
 
     @DeleteMapping("{id}")
     public Response<NoContentDTO> deleteUser(@PathVariable("id") Long userId){
-        return userService.deleteUser(userId);ure
+        return userService.deleteUser(userId);
     }
 
 
