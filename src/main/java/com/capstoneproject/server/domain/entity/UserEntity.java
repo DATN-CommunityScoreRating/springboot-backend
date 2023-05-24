@@ -39,6 +39,19 @@ public class UserEntity{
     @Column(name = "email")
     private String email;
 
+    @Column(name = "avatar")
+    private String avatar;
+
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+    @Column(name = "score")
+    private Integer score;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id")
+    private ClassEntity clazz;
+
     @ManyToOne
     @JoinColumn(name = "role_id", nullable = false)
     private RoleEntity role;

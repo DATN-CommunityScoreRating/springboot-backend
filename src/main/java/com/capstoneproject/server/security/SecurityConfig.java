@@ -59,8 +59,8 @@ public class SecurityConfig{
                         "/v3/api-docs/**",
                         "/anonymous/**")
                 .permitAll()
-                .antMatchers(HttpMethod.POST, "/accounts")
-                .permitAll()
+//                .antMatchers(HttpMethod.POST, "/accounts")
+//                .permitAll()
                 .anyRequest().authenticated()
                 .and()
                 // Exception Handler

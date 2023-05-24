@@ -30,6 +30,47 @@ public class ClassServiceImpl implements ClassService {
     private final FacultyRepository facultyRepository;
     private final CourseRepository courseRepository;
     private final ClassRepository classRepository;
+
+    @Override
+    public Response<OnlyIDDTO> updateClass(Long classId, AddClassRequest request) {
+        var classEntity = classRepository.findById(classId).orElseThrow(() ->
+                new ObjectNotFoundException("classId", classId));
+
+        Map<String, String> error = new HashMap<>();
+        // TODO: validate
+        validateAddClass(error);
+        var faculty = facultyRepository.findById(request.getFacultyId()).orElseThrow(() ->
+                new ObjectNotFoundException("facultyId", request.getFacultyId()));
+
+        var course = courseRepository.findById(request.getCourseId()).orElseThrow(() ->
+                new ObjectNotFoundException("courseId", request.getCourseId()));
+
+        classEntity.setClassName(request.getClassName());
+        classEntity.setCourseEntity(course);
+        classEntity.setFaculty(faculty);
+        var classSaved = classRepository.save(classEntity);
+
+        return Response.<OnlyIDDTO>newBuilder()
+                .setSuccess(true)
+                .setData(OnlyIDDTO.builder()
+                        .id(classSaved.getClassId())
+                        .build())
+                .build();
+    }
+
+    @Override
+    public Response<NoContentDTO> deleteClass(Long classId) {
+        var clazz = classRepository.findById(classId).orElseThrow(() ->
+                new ObjectNotFoundException("classId", classId));
+
+        classRepository.delete(clazz);
+
+        return Response.<NoContentDTO>newBuilder()
+                .setSuccess(true)
+                .setData(NoContentDTO.builder().build())
+                .build();
+    }
+
     @Override
     public Response<PageDTO<ClassDTO>> findClass(GetAllClassRequest request) {
         var classPage = classDslRepository.getListClass(request);
@@ -41,14 +82,7 @@ public class ClassServiceImpl implements ClassService {
                         .totalElements(classPage.getTotal())
                         .totalPages(RequestUtils.getTotalPage(classPage.getTotal(), request))
                         .items(classPage.getItems().stream()
-                                .map(c -> ClassDTO.builder()
-                                        .classId(c.getClassId())
-                                        .courseId(c.getCourseEntity().getCourseId())
-                                        .courseName(c.getCourseEntity().getName())
-                                        .facultyName(c.getFaculty().getFacultyName())
-                                        .facultyId(c.getFaculty().getFacultyId())
-                                        .className(c.getClassName())
-                                        .build())
+                                .map(this::classMap)
                                 .collect(Collectors.toList()))
                         .build())
                 .build();
@@ -82,7 +116,29 @@ public class ClassServiceImpl implements ClassService {
                 .build();
     }
 
+    @Override
+    public Response<ClassDTO> getClassById(Long classId) {
+        var clazz = classRepository.findByIdAndFetchFacultyAndCourse(classId).orElseThrow(() ->
+                new ObjectNotFoundException("classId", classId));
+
+        return Response.<ClassDTO>newBuilder()
+                .setSuccess(true)
+                .setData(classMap(clazz))
+                .build();
+    }
+
     private void validateAddClass(Map<String, String> error) {
 //        TODO: validate add class
+    }
+
+    private ClassDTO classMap(ClassEntity clazz){
+        return ClassDTO.builder()
+                .classId(clazz.getClassId())
+                .courseId(clazz.getCourseEntity().getCourseId())
+                .courseName(clazz.getCourseEntity().getName())
+                .facultyName(clazz.getFaculty().getFacultyName())
+                .facultyId(clazz.getFaculty().getFacultyId())
+                .className(clazz.getClassName())
+                .build();
     }
 }

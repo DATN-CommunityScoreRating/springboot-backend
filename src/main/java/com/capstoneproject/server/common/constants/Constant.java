@@ -20,6 +20,6 @@ public class Constant {
 
     public static final String REGISTER_PATH = "/accounts";
 
-    public static final List<String> UN_AUTHENTICATION_PATH = List.of(LOGIN_PATH, REFRESH_TOKEN_PATH, REGISTER_PATH);
+    public static final List<String> UN_AUTHENTICATION_PATH = List.of(LOGIN_PATH, REFRESH_TOKEN_PATH);
 
 }

@@ -1,4 +1,4 @@
-package com.capstoneproject.server.payload.request;
+package com.capstoneproject.server.payload.request.user;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,4 +18,8 @@ public class NewUserRequest {
     private Long roleId;
     private String fullName;
     private String email;
+    private String avatar;
+    private String phoneNumber;
+    private Long classId;
+    private String studentId;
 }

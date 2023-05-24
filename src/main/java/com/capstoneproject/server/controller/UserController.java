@@ -1,14 +1,12 @@
 package com.capstoneproject.server.controller;
 
-import com.capstoneproject.server.domain.entity.UserEntity;
-import com.capstoneproject.server.payload.request.NewUserRequest;
+import com.capstoneproject.server.payload.request.user.GetUserRequest;
+import com.capstoneproject.server.payload.request.user.NewUserRequest;
+import com.capstoneproject.server.payload.request.user.UpdateUserRequest;
+import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * @author lkadai0801
@@ -23,8 +21,29 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<UserEntity> addNewUser(@RequestBody NewUserRequest request){
-        return ResponseEntity.ok(userService.addUser(request.getUsername(), request.getPassword(),
-                request.getRoleId(), request.getFullName(), request.getEmail()));
+    public Response<OnlyIDDTO> addNewUser(@RequestBody NewUserRequest request){
+        return userService.addUser(request);
     }
+
+    @GetMapping
+    public Response<PageDTO<UserDTO>> getAllUser(@ModelAttribute("request")GetUserRequest request){
+        return userService.getListUser(request);
+    }
+
+    @GetMapping("{id}")
+    public Response<UserDTO> getUserById(@PathVariable(name = "id") Long id){
+        return userService.getUserById(id);
+    }
+
+    @PutMapping("{id}")
+    public Response<OnlyIDDTO> updateUser(@PathVariable("id") Long id,@RequestBody NewUserRequest request){
+        return userService.updateUser(id, request);
+    }
+
+    @DeleteMapping("{id}")
+    public Response<NoContentDTO> deleteUser(@PathVariable("id") Long userId){
+        return userService.deleteUser(userId);
+    }
+
+
 }
