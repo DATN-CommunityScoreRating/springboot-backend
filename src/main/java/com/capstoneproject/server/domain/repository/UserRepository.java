@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -28,4 +30,16 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
             "WHERE u.userId = :userId")
 
     Optional<UserEntity> findByIdAndFetchRoleFacultyAndClass(@Param("userId") Long userId);
+
+    @Query("SELECT u FROM UserEntity u " +
+            "WHERE u.studentId in (:studentIds)")
+    List<UserEntity> findByStudentIds(@Param("studentIds")Collection<String> studentIds);
+
+    @Query("SELECT u FROM UserEntity u " +
+            "WHERE u.username in (:usernames)")
+    List<UserEntity> findByUsernames(@Param("usernames")Collection<String> usernames);
+
+    @Query("SELECT u FROM UserEntity u " +
+            "WHERE u.email in (:emails)")
+    List<UserEntity> findByEmails(@Param("emails")Collection<String> emails);
 }

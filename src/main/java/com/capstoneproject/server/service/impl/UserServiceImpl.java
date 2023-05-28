@@ -1,19 +1,28 @@
 package com.capstoneproject.server.service.impl;
 
+import com.capstoneproject.server.cache.JacksonRedisUtil;
+import com.capstoneproject.server.common.constants.CommunityBKDNPermission;
+import com.capstoneproject.server.common.enums.ErrorCode;
 import com.capstoneproject.server.converter.UserConverter;
+import com.capstoneproject.server.domain.dto.UploadStudentCSV;
+import com.capstoneproject.server.domain.entity.ClassEntity;
 import com.capstoneproject.server.domain.entity.RoleEntity;
 import com.capstoneproject.server.domain.entity.UserEntity;
+import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
 import com.capstoneproject.server.domain.repository.ClassRepository;
 import com.capstoneproject.server.domain.repository.RoleRepository;
 import com.capstoneproject.server.domain.repository.UserRepository;
 import com.capstoneproject.server.domain.repository.dsl.UserDslRepository;
 import com.capstoneproject.server.exception.ObjectNotFoundException;
+import com.capstoneproject.server.payload.request.ImportRequest;
 import com.capstoneproject.server.payload.request.user.GetUserRequest;
 import com.capstoneproject.server.payload.request.user.NewUserRequest;
-import com.capstoneproject.server.payload.request.user.UpdateUserRequest;
 import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.service.UserService;
 import com.capstoneproject.server.util.RequestUtils;
+import com.capstoneproject.server.util.SecurityUtils;
+import com.opencsv.bean.CsvToBean;
+import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,9 +32,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -42,6 +54,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final UserDslRepository userDslRepository;
     private final ClassRepository classRepository;
+    private final JacksonRedisUtil jacksonRedisUtil;
+    private final SecurityUtils securityUtils;
+    private final PrefetchEntityProvider prefetchEntityProvider;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -169,6 +184,117 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         return Response.<NoContentDTO>newBuilder()
                 .setSuccess(true)
                 .setData(NoContentDTO.builder().build())
+                .build();
+    }
+
+    @Override
+    public Response<UploadDTO<UploadStudentDTO>> uploadStudent(MultipartFile request) {
+        try (Reader reader = new BufferedReader(new InputStreamReader(request.getInputStream()))){
+            CsvToBean<UploadStudentCSV> csvToBean = new CsvToBeanBuilder<UploadStudentCSV>(reader)
+                    .withSkipLines(1)
+                    .withType(UploadStudentCSV.class)
+                    .withIgnoreEmptyLine(true)
+                    .withIgnoreLeadingWhiteSpace(true)
+                    .build();
+
+            List<UploadStudentCSV> records = csvToBean.parse();
+            List<UploadStudentDTO> result = new ArrayList<>();
+            var listStudentIds = records.stream().map(UploadStudentCSV::getStudentId).collect(Collectors.toUnmodifiableList());
+            var listUsernames = records.stream().map(UploadStudentCSV::getUsername).collect(Collectors.toUnmodifiableList());
+            var listEmails = records.stream().map(UploadStudentCSV::getEmail).collect(Collectors.toUnmodifiableList());
+            var listClass = records.stream().map(UploadStudentCSV::getClassName).collect(Collectors.toUnmodifiableList());
+
+            var studentIdExist = userRepository.findByStudentIds(listStudentIds)
+                            .stream().map(UserEntity::getStudentId).collect(Collectors.toUnmodifiableList());
+            var emailExist = userRepository.findByEmails(listEmails)
+                            .stream().map(UserEntity::getEmail).collect(Collectors.toUnmodifiableList());
+            var usernameExist = userRepository.findByUsernames(listUsernames)
+                            .stream().map(UserEntity::getUsername).collect(Collectors.toUnmodifiableList());
+            var classExist = classRepository.findAllByClassNames(listClass)
+                            .stream().collect(Collectors.toMap(ClassEntity::getClassName, c -> c));
+
+            records.forEach(record -> {
+                var uploadStudentBuilder = UploadStudentDTO.builder()
+                        .studentId(record.getStudentId())
+                        .className(record.getClassName())
+                        .username(record.getUsername())
+                        .password(record.getPassword())
+                        .email(record.getEmail())
+                        .fullName(record.getFullName())
+                        .phoneNumber(record.getPhoneNumber());
+                // TODO: validate
+                Map<String, String> errors = new HashMap<>();
+
+                if (studentIdExist.contains(record.getStudentId())){
+                    errors.put("studentId", ErrorCode.ALREADY_EXIST.name());
+                }
+
+                if (usernameExist.contains(record.getUsername())){
+                    errors.put("username", ErrorCode.ALREADY_EXIST.name());
+                }
+
+                if (emailExist.contains(record.getEmail())){
+                    errors.put("email", ErrorCode.ALREADY_EXIST.name());
+                }
+
+                if (!classExist.containsKey(record.getClassName())){
+                    errors.put("className", ErrorCode.NOT_FOUND.name());
+                }
+
+                uploadStudentBuilder.errors(errors);
+
+                result.add(uploadStudentBuilder.build());
+            });
+
+            UUID uuid = UUID.randomUUID();
+
+            jacksonRedisUtil.put(String.format("%s_%s", securityUtils.getPrincipal().getUserId(), uuid), result,
+                    JacksonRedisUtil.DEFAULT_DURATION);
+            return Response.<UploadDTO<UploadStudentDTO>>newBuilder()
+                    .setSuccess(true)
+                    .setData(UploadDTO.<UploadStudentDTO>builder()
+                            .totalElements((long) records.size())
+                            .items(result)
+                            .correlationId(uuid)
+                            .build())
+                    .build();
+        } catch (Exception e){
+            return Response.<UploadDTO<UploadStudentDTO>>newBuilder()
+                    .setSuccess(false)
+                    .setErrorCode(ErrorCode.IO_ERROR)
+                    .build();
+        }
+    }
+
+    @Override
+    public Response<ImportDTO> importStudent(ImportRequest request) {
+        var studentList = jacksonRedisUtil.getAsList(String.format("%s_%s",securityUtils.getPrincipal().getUserId(), request.getCorrelationId()), UploadStudentDTO.class);
+        var total = studentList.size();
+        var successList = studentList.stream().filter(s -> s.getErrors() == null || s.getErrors().isEmpty()).collect(Collectors.toList());
+
+        List<UserEntity> students = new ArrayList<>();
+        successList.forEach(student -> {
+            UserEntity user = new UserEntity();
+            user.setStudentId(student.getStudentId());
+            user.setUsername(student.getUsername());
+            user.setPassword(passwordEncoder.encode(student.getPassword()));
+            user.setScore(0);
+            user.setEmail(student.getEmail());
+            user.setPhoneNumber(student.getPhoneNumber());
+            user.setFullName(student.getFullName());
+            user.setRole(prefetchEntityProvider.getRoleEntityNameMap().get(CommunityBKDNPermission.Role.STUDENT));
+            students.add(user);
+        });
+        if (!students.isEmpty()){
+            userRepository.saveAll(students);
+        }
+        return Response.<ImportDTO>newBuilder()
+                .setSuccess(true)
+                .setData(ImportDTO.builder()
+                        .total(total)
+                        .totalSuccess(successList.size())
+                        .totalError(total - successList.size())
+                        .build())
                 .build();
     }
 }

@@ -28,5 +28,7 @@ public enum ErrorCode {
     AUTHENTICATION_FAILURE,
     ACCESS_DENIED,
     TOKEN_EXPIRED,
-    IO_ERROR
+    IO_ERROR,
+    TOO_LONG,
+    TOO_SHORT
 }

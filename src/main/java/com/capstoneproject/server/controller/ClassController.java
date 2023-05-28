@@ -36,7 +36,7 @@ public class ClassController {
 
     @GetMapping
     @Operation(summary = "List class")
-    @Parameters({
+    @Parameters(value = {
             @Parameter(in = QUERY, name = "page", description = "Requested page. Start from 1. Default to 1 if not given", example = "1", schema = @Schema(minimum = "1")),
             @Parameter(in = QUERY, name = "size", description = "Requested page size. Default to 100 if not given", example = "100", schema = @Schema(minimum = "1")),
             @Parameter(in = QUERY, name = "sort", description = "Sort property. Omitted if not given", example = "lastName",
