@@ -31,7 +31,7 @@ pipeline {
             steps{
                 sh 'docker pull anhdai0801/capstone-project-backend'
                 sh 'docker stop capstone-backend-container || true && docker rm capstone-backend-container || true'
-                sh 'docker run -dp 9090:8080 --env DB_HOST --env DB_PORT --env DB_NAME --env DB_USER --env DB_PASS --name capstone-backend-container anhdai0801/capstone-project-backend'
+                sh 'docker run -dp 9090:8080 --env DB_HOST --env DB_PORT --env DB_NAME --env DB_USER --env DB_PASS --env REDIS_HOST --env REDIS_PORT --name capstone-backend-container anhdai0801/capstone-project-backend'
             }
         }
     }

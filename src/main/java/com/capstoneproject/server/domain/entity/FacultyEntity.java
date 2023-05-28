@@ -21,4 +21,7 @@ public class FacultyEntity {
 
     @Column(name = "faculty_name")
     private String facultyName;
+
+    @Column(name = "code")
+    private String code;
 }

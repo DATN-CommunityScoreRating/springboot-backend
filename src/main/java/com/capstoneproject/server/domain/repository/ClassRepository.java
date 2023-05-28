@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -20,4 +22,8 @@ public interface ClassRepository extends JpaRepository<ClassEntity, Long> {
             "LEFT JOIN FETCH c.courseEntity " +
             "WHERE c.classId = :classId")
     Optional<ClassEntity> findByIdAndFetchFacultyAndCourse(@Param("classId") Long classId);
+
+    @Query("SELECT c FROM ClassEntity c " +
+            "WHERE c.className in (:classNames)")
+    List<ClassEntity> findAllByClassNames(@Param("classNames") Collection<String> classNames);
 }
