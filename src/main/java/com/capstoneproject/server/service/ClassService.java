@@ -1,8 +1,11 @@
 package com.capstoneproject.server.service;
 
+import com.capstoneproject.server.payload.request.ImportRequest;
+import com.capstoneproject.server.payload.response.UploadDTO;
 import com.capstoneproject.server.payload.request.AddClassRequest;
 import com.capstoneproject.server.payload.request.GetAllClassRequest;
 import com.capstoneproject.server.payload.response.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * @author dai.le-anh
@@ -19,4 +22,8 @@ public interface ClassService {
     Response<OnlyIDDTO> updateClass(Long classId, AddClassRequest request);
 
     Response<NoContentDTO> deleteClass(Long classId);
+
+    Response<UploadDTO<UploadClassDTO>> uploadClass(MultipartFile csvFile);
+
+    Response<ImportDTO> importClass(ImportRequest request);
 }
