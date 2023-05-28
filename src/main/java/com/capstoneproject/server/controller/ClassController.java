@@ -1,10 +1,12 @@
 package com.capstoneproject.server.controller;
 
+import com.capstoneproject.server.common.constants.CommunityBKDNPermission;
 import com.capstoneproject.server.payload.request.AddClassRequest;
 import com.capstoneproject.server.payload.request.GetAllClassRequest;
 import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.service.ClassService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -26,6 +28,9 @@ public class ClassController {
     }
 
     @PostMapping
+    @Secured(value = {
+            CommunityBKDNPermission.Role.ADMIN
+    })
     public Response<OnlyIDDTO> addClass(@RequestBody @Valid AddClassRequest request){
         return classService.addClass(request);
     }
@@ -36,11 +41,17 @@ public class ClassController {
     }
 
     @PutMapping("{id}")
+    @Secured(value = {
+            CommunityBKDNPermission.Role.ADMIN
+    })
     public Response<OnlyIDDTO> updateClass(@PathVariable("id") Long classId, AddClassRequest request){
         return classService.updateClass(classId, request);
     }
 
     @DeleteMapping("{id}")
+    @Secured(value = {
+            CommunityBKDNPermission.Role.ADMIN
+    })
     public Response<NoContentDTO> deleteClass(@PathVariable("id") Long classId){
         return classService.deleteClass(classId);
     }

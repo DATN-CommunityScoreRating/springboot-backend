@@ -54,7 +54,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     public Response<OnlyIDDTO> addUser(NewUserRequest request) {
 
 //        TODO: validate
-
         UserEntity newUser = new UserEntity();
         if (request.getClassId() != null && request.getClassId() > 0){
             var clazz = classRepository.findById(request.getClassId()).orElseThrow(() ->
@@ -80,6 +79,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         RoleEntity role = roleRepository.findById(request.getRoleId()).orElseThrow(() ->
                 new ObjectNotFoundException("roleId", request.getRoleId()));
         newUser.setRole(role);
+        newUser.setScore(0);
         var useAdded = userRepository.save(newUser);
 
         return Response.<OnlyIDDTO>newBuilder()
