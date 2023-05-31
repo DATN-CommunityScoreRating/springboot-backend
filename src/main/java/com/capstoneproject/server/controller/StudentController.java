@@ -8,6 +8,8 @@ import com.capstoneproject.server.payload.response.UploadDTO;
 import com.capstoneproject.server.payload.response.UploadStudentDTO;
 import com.capstoneproject.server.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.annotation.Secured;
@@ -31,6 +33,7 @@ public class StudentController {
             CommunityBKDNPermission.Role.ADMIN
     })
     @PostMapping("upload")
+    @Parameter(in = ParameterIn.QUERY, name = "file", description = "File csv import student")
     public Response<UploadDTO<UploadStudentDTO>> uploadStudent(@RequestParam(name = "file")MultipartFile request){
         return userService.uploadStudent(request);
     }

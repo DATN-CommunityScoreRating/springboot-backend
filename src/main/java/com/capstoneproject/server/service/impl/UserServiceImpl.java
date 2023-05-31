@@ -34,6 +34,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.transaction.Transactional;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -267,13 +268,15 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
+    @Transactional
     public Response<ImportDTO> importStudent(ImportRequest request) {
         var studentList = jacksonRedisUtil.getAsList(String.format("%s_%s",securityUtils.getPrincipal().getUserId(), request.getCorrelationId()), UploadStudentDTO.class);
         var total = studentList.size();
         var successList = studentList.stream().filter(s -> s.getErrors() == null || s.getErrors().isEmpty()).collect(Collectors.toList());
-
+        var classExist = classRepository.findAllByClassNames(successList.stream().map(s -> s.getClassName()).collect(Collectors.toUnmodifiableList()))
+                .stream().collect(Collectors.toMap(ClassEntity::getClassName, c -> c));
         List<UserEntity> students = new ArrayList<>();
-        successList.forEach(student -> {
+        for (var student: successList) {
             UserEntity user = new UserEntity();
             user.setStudentId(student.getStudentId());
             user.setUsername(student.getUsername());
@@ -282,9 +285,10 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             user.setEmail(student.getEmail());
             user.setPhoneNumber(student.getPhoneNumber());
             user.setFullName(student.getFullName());
+            user.setClazz(classExist.get(student.getClassName()));
             user.setRole(prefetchEntityProvider.getRoleEntityNameMap().get(CommunityBKDNPermission.Role.STUDENT));
             students.add(user);
-        });
+        }
         if (!students.isEmpty()){
             userRepository.saveAll(students);
         }

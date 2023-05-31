@@ -11,4 +11,5 @@ insert into faculties(faculty_id, faculty_name) value (8, 'Khoa Môi trường')
 insert into faculties(faculty_id, faculty_name) value (9, 'Khoa Quản lý dự án');
 insert into faculties(faculty_id, faculty_name) value (10, 'Khoa Kiến trúc');
 insert into faculties(faculty_id, faculty_name) value (11, 'Khoa Khoa học công nghệ tiên tiến');
+insert into faculties(faculty_id, faculty_name, code) value (12, 'Khoa Hóa', 'HOA');
 

@@ -5,3 +5,5 @@ insert into courses(course_id, name, code, date_start) values (3, 'Khóa 20', 'K
 insert into courses(course_id, name, code, date_start) values (4, 'Khóa 21', 'K21', '2021-09-01 00:00:00');
 insert into courses(course_id, name, code, date_start) values (5, 'Khóa 22', 'K22', '2022-09-01 00:00:00');
 insert into courses(course_id, name, code, date_start) values (6, 'Khóa 23', 'K23', '2023-09-01 00:00:00');
+insert into courses(course_id, name, code, date_start) values (7, 'Khóa 16', 'K16', '2016-09-01 00:00:00');
+insert into courses(course_id, name, code, date_start) values (8, 'Khóa 17', 'K17', '2017-09-01 00:00:00');
