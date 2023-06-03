@@ -1,5 +1,6 @@
 package com.capstoneproject.server.controller;
 
+import com.capstoneproject.server.common.constants.CommunityBKDNPermission;
 import com.capstoneproject.server.payload.request.activity.AddActivityRequest;
 import com.capstoneproject.server.payload.request.activity.ListActivitiesRequest;
 import com.capstoneproject.server.payload.response.OnlyIDDTO;
@@ -10,6 +11,7 @@ import com.capstoneproject.server.service.ActivityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -26,6 +28,12 @@ public class ActivityController {
     private final ActivityService activityService;
 
     @PostMapping
+    @Secured(value = {
+            CommunityBKDNPermission.Role.ADMIN,
+            CommunityBKDNPermission.Role.FACULTY,
+            CommunityBKDNPermission.Role.UNION,
+            CommunityBKDNPermission.Role.YOUTH_UNION
+    })
     @Operation(summary = "Add activity")
     public Response<OnlyIDDTO> addActivity(@RequestBody AddActivityRequest request){
         return activityService.addActivity(request);

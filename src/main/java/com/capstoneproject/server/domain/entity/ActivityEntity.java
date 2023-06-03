@@ -51,4 +51,7 @@ public class ActivityEntity {
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "create_user_id")
+    private Long createUserId;
 }

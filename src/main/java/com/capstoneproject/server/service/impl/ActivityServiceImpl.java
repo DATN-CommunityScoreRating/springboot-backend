@@ -1,9 +1,16 @@
 package com.capstoneproject.server.service.impl;
 
+import com.capstoneproject.server.common.constants.CommunityBKDNPermission;
+import com.capstoneproject.server.common.constants.Constant;
+import com.capstoneproject.server.common.enums.ActivityStatus;
 import com.capstoneproject.server.common.enums.ErrorCode;
 import com.capstoneproject.server.domain.entity.ActivityEntity;
+import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
+import com.capstoneproject.server.domain.projection.ActivityProjection;
 import com.capstoneproject.server.domain.repository.ActivityRepository;
+import com.capstoneproject.server.domain.repository.UserRepository;
 import com.capstoneproject.server.domain.repository.dsl.ActivityDslRepository;
+import com.capstoneproject.server.exception.ObjectNotFoundException;
 import com.capstoneproject.server.payload.request.activity.AddActivityRequest;
 import com.capstoneproject.server.payload.request.activity.ListActivitiesRequest;
 import com.capstoneproject.server.payload.response.ErrorDTO;
@@ -14,12 +21,14 @@ import com.capstoneproject.server.payload.response.activity.ActivityDTO;
 import com.capstoneproject.server.service.ActivityService;
 import com.capstoneproject.server.util.DateTimeUtils;
 import com.capstoneproject.server.util.RequestUtils;
+import com.capstoneproject.server.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,7 +41,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
+    private final UserRepository userRepository;
     private final ActivityDslRepository activityDslRepository;
+    private final SecurityUtils securityUtils;
+    private final PrefetchEntityProvider prefetchEntityProvider;
     @Override
     public Response<OnlyIDDTO> addActivity(AddActivityRequest request) {
         List<ErrorDTO> errors = new ArrayList<>();
@@ -53,6 +65,7 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setScore(request.getScore());
         activity.setMaxQuantity(request.getMaxQuantity());
         activity.setLocation(request.getLocation());
+        activity.setCreateUserId(securityUtils.getPrincipal().getUserId());
         try {
             activity.setStartDate(DateTimeUtils.string2Timestamp(request.getStartDate()));
             activity.setEndDate(DateTimeUtils.string2Timestamp(request.getEndDate()));
@@ -81,7 +94,6 @@ public class ActivityServiceImpl implements ActivityService {
     public Response<PageDTO<ActivityDTO>> listActivity(ListActivitiesRequest request) {
         var activityPage = activityDslRepository.listActivity(request);
 
-
         return Response.<PageDTO<ActivityDTO>>newBuilder()
                 .setSuccess(true)
                 .setData(PageDTO.<ActivityDTO>builder()
@@ -99,12 +111,58 @@ public class ActivityServiceImpl implements ActivityService {
                                         .setStartDate(DateTimeUtils.timestamp2String(i.getStartDate()))
                                         .setEndDate(DateTimeUtils.timestamp2String(i.getEndDate()))
                                         .setTotalParticipant(Math.toIntExact(i.getTotalParticipant()))
-                                        .setOrganization("")
-                                        .setStatus("")
+                                        .setOrganization(getOrganization(i.getCreateUserId()))
+                                        .setStatus(getActivityStatus(i))
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
                 .build();
+    }
+
+    private String getActivityStatus(ActivityProjection activity) {
+        Date now = new Date();
+
+        if (now.after(new Date(activity.getEndRegister().getTime()))){
+            return ActivityStatus.EXPIRED.name();
+        }
+
+        if (now.before(new Date(activity.getStartRegister().getTime()))){
+            return ActivityStatus.PENDING.name();
+        }
+
+        if (activity.getTotalParticipant() >= activity.getMaxQuantity()){
+            return ActivityStatus.FULLY.name();
+        }
+
+        return ActivityStatus.ACTIVE.name();
+    }
+
+    private String getOrganization(Long createUserId) {
+        var createUser = userRepository.findById(createUserId).orElseThrow(() ->
+                new ObjectNotFoundException("userId", createUserId));
+
+        var role = prefetchEntityProvider.getRoleEntityMap().get(createUser.getRole().getRoleId());
+        String organization = Constant.DAI_HOC_BACH_KHOA;
+
+        switch (role.getRoleName()){
+            case CommunityBKDNPermission.Role.ADMIN:
+                organization = Constant.DAI_HOC_BACH_KHOA;
+                break;
+            case CommunityBKDNPermission.Role.YOUTH_UNION:
+                organization = Constant.DOAN_THANH_NIEN;
+                break;
+            case CommunityBKDNPermission.Role.FACULTY:
+                var faculty = prefetchEntityProvider.getFacultyEntityMap().get(createUser.getFacultyId());
+                organization = faculty.getFacultyName();
+                break;
+            case CommunityBKDNPermission.Role.UNION:
+                var faculty1 = prefetchEntityProvider.getFacultyEntityMap().get(createUser.getFacultyId());
+                organization = Constant.LIEN_CHI_DOAN + " " + faculty1.getFacultyName();
+            default:
+                break;
+        }
+
+        return organization;
     }
 
     private void validateActivity(AddActivityRequest request, List<ErrorDTO> errors){

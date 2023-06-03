@@ -55,4 +55,7 @@ public class UserEntity{
     @ManyToOne
     @JoinColumn(name = "role_id", nullable = false)
     private RoleEntity role;
+
+    @Column(name = "faculty_id")
+    private Long facultyId;
 }

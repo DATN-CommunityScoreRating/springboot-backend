@@ -25,4 +25,7 @@ public class ActivityProjection {
     private Integer maxQuantity;
     private Long totalParticipant;
     private Integer score;
+    private Long createUserId;
+    private Timestamp startRegister;
+    private Timestamp endRegister;
 }
