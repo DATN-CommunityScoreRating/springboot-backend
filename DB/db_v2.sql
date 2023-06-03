@@ -35,3 +35,8 @@ DROP FOREIGN KEY FK_subcategory_activity;
 
 ALTER TABLE activities
 DROP column  activity_subcategory_id;
+
+ALTER TABLE community_score_bkdn.activities
+ADD create_user_id bigint not null,
+ADD constraint FK_user_activity FOREIGN KEY (create_user_id)
+REFERENCES community_score_bkdn.users(user_id);

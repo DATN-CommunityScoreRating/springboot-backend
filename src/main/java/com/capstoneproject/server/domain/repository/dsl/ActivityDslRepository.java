@@ -27,7 +27,6 @@ import org.springframework.stereotype.Repository;
 public class ActivityDslRepository {
     private final JPAQueryFactory queryBuilder;
     private final QActivityEntity activity = QActivityEntity.activityEntity;
-    private final QUserActivityStatusEntity userActivityStatus = QUserActivityStatusEntity.userActivityStatusEntity;
     private final QUserActivityEntity userActivity = QUserActivityEntity.userActivityEntity;
 
     public Page<ActivityProjection> listActivity(ListActivitiesRequest request){
@@ -39,7 +38,7 @@ public class ActivityDslRepository {
                         activity.endDate, activity.location, activity.maxQuantity,
                         queryBuilder.select(userActivity.count()).from(userActivity)
                                 .where(userActivity.activity.activityId.eq(activity.activityId)),
-                        activity.score))
+                        activity.score, activity.createUserId, activity.startRegister, activity.endRegister))
                 .from(activity);
         JPAQuery<Long> countQuery = query.clone().select(activity.countDistinct());
 

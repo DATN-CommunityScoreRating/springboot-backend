@@ -19,7 +19,11 @@ public class Constant {
     public static final String REFRESH_TOKEN_PATH = "/token/refresh";
 
     public static final String REGISTER_PATH = "/accounts";
+    public static final String DAI_HOC_BACH_KHOA = "Đại học Bách Khoa";
 
+    public static final String DOAN_THANH_NIEN = "Đoàn thanh niên, Hội sinh viên";
+
+    public static final String LIEN_CHI_DOAN = "Liên chi đoàn";
     public static final List<String> UN_AUTHENTICATION_PATH = List.of(LOGIN_PATH, REFRESH_TOKEN_PATH);
 
 }
