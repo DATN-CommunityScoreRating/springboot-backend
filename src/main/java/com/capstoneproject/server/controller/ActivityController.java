@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Activity APIs")
-@RequestMapping("activity")
+@RequestMapping("activities")
 public class ActivityController {
     private final ActivityService activityService;
 
