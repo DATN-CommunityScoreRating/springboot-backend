@@ -3,6 +3,7 @@ package com.capstoneproject.server.controller;
 import com.capstoneproject.server.common.constants.CommunityBKDNPermission;
 import com.capstoneproject.server.payload.request.activity.AddActivityRequest;
 import com.capstoneproject.server.payload.request.activity.ListActivitiesRequest;
+import com.capstoneproject.server.payload.request.activity.RegistrationActivityRequest;
 import com.capstoneproject.server.payload.response.OnlyIDDTO;
 import com.capstoneproject.server.payload.response.PageDTO;
 import com.capstoneproject.server.payload.response.Response;
@@ -43,6 +44,11 @@ public class ActivityController {
     @Operation(summary = "List activity")
     public Response<PageDTO<ActivityDTO>> listActivities(@ModelAttribute ListActivitiesRequest request){
         return activityService.listActivity(request);
+    }
+
+    @PostMapping("registration")
+    public Response<OnlyIDDTO> registrationActivity(@RequestBody RegistrationActivityRequest request){
+        return activityService.registrationActivity(request);
     }
 
 }

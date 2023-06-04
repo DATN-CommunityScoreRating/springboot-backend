@@ -30,5 +30,7 @@ public enum ErrorCode {
     TOKEN_EXPIRED,
     IO_ERROR,
     TOO_LONG,
-    TOO_SHORT
+    TOO_SHORT,
+    OUTSIDE_REGISTRATION_PERIOD,
+    ENOUGH_QUANTITY
 }
