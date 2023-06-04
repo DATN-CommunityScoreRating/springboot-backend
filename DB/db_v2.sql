@@ -15,7 +15,7 @@ create table user_activity_status (
 );
 
 alter table user_activity_status
-modify user_activity_status_id bigint not null primary key ;
+modify user_activity_status_id bigint not null primary key;
 
 create table user_activity (
     user_activity_id bigint not null primary key,
