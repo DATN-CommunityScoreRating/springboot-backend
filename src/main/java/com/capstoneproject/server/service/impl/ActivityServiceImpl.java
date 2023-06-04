@@ -4,15 +4,19 @@ import com.capstoneproject.server.common.constants.CommunityBKDNPermission;
 import com.capstoneproject.server.common.constants.Constant;
 import com.capstoneproject.server.common.enums.ActivityStatus;
 import com.capstoneproject.server.common.enums.ErrorCode;
+import com.capstoneproject.server.common.enums.UserActivityStatus;
 import com.capstoneproject.server.domain.entity.ActivityEntity;
+import com.capstoneproject.server.domain.entity.UserActivityEntity;
 import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
 import com.capstoneproject.server.domain.projection.ActivityProjection;
 import com.capstoneproject.server.domain.repository.ActivityRepository;
+import com.capstoneproject.server.domain.repository.UserActivityRepository;
 import com.capstoneproject.server.domain.repository.UserRepository;
 import com.capstoneproject.server.domain.repository.dsl.ActivityDslRepository;
 import com.capstoneproject.server.exception.ObjectNotFoundException;
 import com.capstoneproject.server.payload.request.activity.AddActivityRequest;
 import com.capstoneproject.server.payload.request.activity.ListActivitiesRequest;
+import com.capstoneproject.server.payload.request.activity.RegistrationActivityRequest;
 import com.capstoneproject.server.payload.response.ErrorDTO;
 import com.capstoneproject.server.payload.response.OnlyIDDTO;
 import com.capstoneproject.server.payload.response.PageDTO;
@@ -26,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -45,6 +50,8 @@ public class ActivityServiceImpl implements ActivityService {
     private final ActivityDslRepository activityDslRepository;
     private final SecurityUtils securityUtils;
     private final PrefetchEntityProvider prefetchEntityProvider;
+    private final UserActivityRepository userActivityRepository;
+
     @Override
     public Response<OnlyIDDTO> addActivity(AddActivityRequest request) {
         List<ErrorDTO> errors = new ArrayList<>();
@@ -115,6 +122,51 @@ public class ActivityServiceImpl implements ActivityService {
                                         .setStatus(getActivityStatus(i))
                                         .build())
                                 .collect(Collectors.toList()))
+                        .build())
+                .build();
+    }
+
+    @Override
+    public Response<OnlyIDDTO> registrationActivity(RegistrationActivityRequest request) {
+        var userId = securityUtils.getPrincipal().getUserId();
+        var activity = activityRepository.findById(request.getActivityId())
+                .orElseThrow(() -> new ObjectNotFoundException("activityId", request.getActivityId()));
+
+        ErrorCode code = null;
+        Date now = new Date();
+        if (activity.getStartRegister().after(now) || activity.getEndRegister().before(now)) {
+            code = ErrorCode.OUTSIDE_REGISTRATION_PERIOD;
+        }
+
+        List<Long> userRegisted = userActivityRepository.getAllUserIdRegistedActivity(request.getActivityId());
+
+        if (code == null && userRegisted.contains(userId)){
+            code = ErrorCode.ALREADY_EXIST;
+        }
+
+        if (code == null && userRegisted.size() >= activity.getMaxQuantity()){
+            code = ErrorCode.ENOUGH_QUANTITY;
+        }
+
+        if (code != null) {
+            return Response.<OnlyIDDTO>newBuilder()
+                    .setSuccess(false)
+                    .setErrorCode(code)
+                    .setMessage("Can't not registration activity")
+                    .build();
+        }
+        var user = userRepository.findById(userId).orElseThrow(() ->
+                new ObjectNotFoundException("userId", userId));
+
+        UserActivityEntity userActivity = new UserActivityEntity();
+        userActivity.setUser(user);
+        userActivity.setActivity(activity);
+        userActivity.setStatus(prefetchEntityProvider.getUserActivityStatusEntityCodeMap().get(UserActivityStatus.REGISTERED.name()));
+        var userActivitySaved = userActivityRepository.save(userActivity);
+        return Response.<OnlyIDDTO>newBuilder()
+                .setSuccess(true)
+                .setData(OnlyIDDTO.builder()
+                        .id(userActivitySaved.getUserActivityId())
                         .build())
                 .build();
     }
