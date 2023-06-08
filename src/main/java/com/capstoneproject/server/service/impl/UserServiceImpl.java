@@ -36,6 +36,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.transaction.Transactional;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.*;
@@ -259,7 +260,8 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                             .correlationId(uuid)
                             .build())
                     .build();
-        } catch (Exception e){
+        } catch (IOException e){
+            e.printStackTrace();
             return Response.<UploadDTO<UploadStudentDTO>>newBuilder()
                     .setSuccess(false)
                     .setErrorCode(ErrorCode.IO_ERROR)
