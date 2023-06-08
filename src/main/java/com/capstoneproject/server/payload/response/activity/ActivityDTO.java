@@ -23,4 +23,5 @@ public class ActivityDTO {
     private Integer score;
     private Integer totalParticipant;
     private Integer maxQuantity;
+    private String description;
 }

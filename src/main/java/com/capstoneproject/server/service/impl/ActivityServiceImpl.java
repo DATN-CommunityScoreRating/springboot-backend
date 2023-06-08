@@ -5,6 +5,7 @@ import com.capstoneproject.server.common.constants.Constant;
 import com.capstoneproject.server.common.enums.ActivityStatus;
 import com.capstoneproject.server.common.enums.ErrorCode;
 import com.capstoneproject.server.common.enums.UserActivityStatus;
+import com.capstoneproject.server.converter.UserConverter;
 import com.capstoneproject.server.domain.entity.ActivityEntity;
 import com.capstoneproject.server.domain.entity.UserActivityEntity;
 import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
@@ -17,10 +18,8 @@ import com.capstoneproject.server.exception.ObjectNotFoundException;
 import com.capstoneproject.server.payload.request.activity.AddActivityRequest;
 import com.capstoneproject.server.payload.request.activity.ListActivitiesRequest;
 import com.capstoneproject.server.payload.request.activity.RegistrationActivityRequest;
-import com.capstoneproject.server.payload.response.ErrorDTO;
-import com.capstoneproject.server.payload.response.OnlyIDDTO;
-import com.capstoneproject.server.payload.response.PageDTO;
-import com.capstoneproject.server.payload.response.Response;
+import com.capstoneproject.server.payload.request.activity.UserActivityRequest;
+import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.payload.response.activity.ActivityDTO;
 import com.capstoneproject.server.service.ActivityService;
 import com.capstoneproject.server.util.DateTimeUtils;
@@ -31,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -119,7 +119,7 @@ public class ActivityServiceImpl implements ActivityService {
                                         .setEndDate(DateTimeUtils.timestamp2String(i.getEndDate()))
                                         .setTotalParticipant(Math.toIntExact(i.getTotalParticipant()))
                                         .setOrganization(getOrganization(i.getCreateUserId()))
-                                        .setStatus(getActivityStatus(i))
+                                        .setStatus(getActivityStatus(i.getStartRegister(), i.getEndRegister(), Math.toIntExact(i.getTotalParticipant()), i.getMaxQuantity()))
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
@@ -171,18 +171,63 @@ public class ActivityServiceImpl implements ActivityService {
                 .build();
     }
 
-    private String getActivityStatus(ActivityProjection activity) {
+    @Override
+    public Response<PageDTO<UserDTO>> getUserRegisterActivity(Long activityId, UserActivityRequest request) {
+        var users = activityDslRepository.listUserActivity(activityId, request);
+        return  Response.<PageDTO<UserDTO>>newBuilder()
+                .setSuccess(true)
+                .setData(PageDTO.<UserDTO>builder()
+                        .page(request.getPage())
+                        .size(request.getSize())
+                        .totalElements(users.getTotal())
+                        .totalPages(RequestUtils.getTotalPage(users.getTotal(), request))
+                        .items(users.getItems().stream().map(UserConverter::map)
+                                .collect(Collectors.toList()))
+                        .build())
+                .build();
+    }
+
+    @Override
+    public Response<ActivityDTO> findById(Long activityId) {
+        var tuples = activityRepository.findByIdAndFetchUser(activityId).orElseThrow(() ->
+                new ObjectNotFoundException("activityId", activityId));
+        ActivityEntity activity = null;
+        Long totalParticipant = 0L;
+        for (var tuple : tuples){
+            activity = tuple.get(0, ActivityEntity.class);
+            totalParticipant = tuple.get(1, Long.class);
+        }
+
+        return Response.<ActivityDTO>newBuilder()
+                .setSuccess(true)
+                .setData(ActivityDTO.newBuilder()
+                        .setActivityId(activity.getActivityId())
+                        .setScore(activity.getScore())
+                        .setMaxQuantity(activity.getMaxQuantity())
+                        .setLocation(activity.getLocation())
+                        .setName(activity.getName())
+                        .setStartDate(DateTimeUtils.timestamp2String(activity.getStartDate()))
+                        .setEndDate(DateTimeUtils.timestamp2String(activity.getEndDate()))
+                        .setTotalParticipant(Math.toIntExact(totalParticipant))
+                        .setOrganization(getOrganization(activity.getCreateUserId()))
+                        .setStatus(getActivityStatus(activity.getStartRegister(), activity.getEndRegister(), Math.toIntExact(totalParticipant), activity.getMaxQuantity()))
+                        .setDescription(activity.getDescription())
+                        .build())
+                .build();
+    }
+
+    private String getActivityStatus(Timestamp startRegister, Timestamp endRegister, int totalParticipant, int maxQuantity) {
         Date now = new Date();
 
-        if (now.after(new Date(activity.getEndRegister().getTime()))){
+        if (now.after(new Date(endRegister.getTime()))){
             return ActivityStatus.EXPIRED.name();
         }
 
-        if (now.before(new Date(activity.getStartRegister().getTime()))){
+        if (now.before(new Date(startRegister.getTime()))){
             return ActivityStatus.PENDING.name();
         }
 
-        if (activity.getTotalParticipant() >= activity.getMaxQuantity()){
+        if (totalParticipant >= maxQuantity){
             return ActivityStatus.FULLY.name();
         }
 
