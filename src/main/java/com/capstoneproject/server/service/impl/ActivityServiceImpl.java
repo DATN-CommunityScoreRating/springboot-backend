@@ -9,7 +9,6 @@ import com.capstoneproject.server.converter.UserConverter;
 import com.capstoneproject.server.domain.entity.ActivityEntity;
 import com.capstoneproject.server.domain.entity.UserActivityEntity;
 import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
-import com.capstoneproject.server.domain.projection.ActivityProjection;
 import com.capstoneproject.server.domain.repository.ActivityRepository;
 import com.capstoneproject.server.domain.repository.UserActivityRepository;
 import com.capstoneproject.server.domain.repository.UserRepository;
@@ -73,6 +72,9 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setMaxQuantity(request.getMaxQuantity());
         activity.setLocation(request.getLocation());
         activity.setCreateUserId(securityUtils.getPrincipal().getUserId());
+        activity.setCreateDate(new Timestamp(System.currentTimeMillis()));
+        activity.setModifyDate(new Timestamp(System.currentTimeMillis()));
+
         try {
             activity.setStartDate(DateTimeUtils.string2Timestamp(request.getStartDate()));
             activity.setEndDate(DateTimeUtils.string2Timestamp(request.getEndDate()));
