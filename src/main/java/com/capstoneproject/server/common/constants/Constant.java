@@ -26,4 +26,8 @@ public class Constant {
     public static final String LIEN_CHI_DOAN = "Liên chi đoàn";
     public static final List<String> UN_AUTHENTICATION_PATH = List.of(LOGIN_PATH, REFRESH_TOKEN_PATH);
 
+    public static class KAFKA {
+        public static final String TOPIC = "community_score.student_registration";
+    }
+
 }

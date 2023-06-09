@@ -59,7 +59,7 @@ public class ActivityDslRepository {
                 query.orderBy(new OrderSpecifier<>(_order, activity.startDate));
             }
         } else {
-            query.orderBy(new OrderSpecifier<>(_order, activity.score));
+            query.orderBy(activity.modifyDate.desc());
         }
 
         query.limit(size).offset(offset);
