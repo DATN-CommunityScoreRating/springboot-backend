@@ -1,7 +1,12 @@
 package com.capstoneproject.server.converter;
 
+import com.capstoneproject.server.domain.entity.FacultyEntity;
 import com.capstoneproject.server.domain.entity.UserEntity;
+import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
 import com.capstoneproject.server.payload.response.UserDTO;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -9,7 +14,10 @@ import org.apache.commons.lang3.StringUtils;
  * @since 5/23/2023
  */
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserConverter {
+
+    private static PrefetchEntityProvider prefetchEntityProvider;
     public static UserDTO map(UserEntity entity){
         return UserDTO.builder()
                 .userId(entity.getUserId())
@@ -25,6 +33,14 @@ public class UserConverter {
                 .username(entity.getUsername())
                 .roleId(entity.getRole().getRoleId())
                 .role(entity.getRole().getRoleName())
+                .faculty(StringUtils.defaultString(prefetchEntityProvider.getFacultyEntityMap().
+                        getOrDefault(entity.getClazz() != null ?
+                                entity.getClazz().getClassId() : -1L,
+                                new FacultyEntity()).getFacultyName()))
                 .build();
+    }
+
+    public static void setPrefetchEntityProvider(PrefetchEntityProvider provider){
+        prefetchEntityProvider = provider;
     }
 }

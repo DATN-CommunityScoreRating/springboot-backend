@@ -1,5 +1,6 @@
 package com.capstoneproject.server.domain.prefetch;
 
+import com.capstoneproject.server.converter.UserConverter;
 import com.capstoneproject.server.domain.entity.CourseEntity;
 import com.capstoneproject.server.domain.entity.FacultyEntity;
 import com.capstoneproject.server.domain.entity.RoleEntity;
@@ -57,5 +58,7 @@ public class PrefetchEntityProvider {
 
         this.userActivityStatusEntityMap = userActivityStatus.stream().collect(Collectors.toMap(UserActivityStatusEntity::getUserActivityStatusId, c -> c));
         this.userActivityStatusEntityCodeMap = userActivityStatus.stream().collect(Collectors.toMap(UserActivityStatusEntity::getStatus, c -> c));
+
+        UserConverter.setPrefetchEntityProvider(this);
     }
 }

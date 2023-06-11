@@ -26,5 +26,6 @@ public class UserDTO {
     private String phoneNumber;
     private String className;
     private Long classId;
+    private String faculty;
 
 }

@@ -28,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -101,7 +100,8 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     public Response<PageDTO<ActivityDTO>> listActivity(ListActivitiesRequest request) {
-        var activityPage = activityDslRepository.listActivity(request);
+        Long userId = securityUtils.getPrincipal().getUserId();
+        var activityPage = activityDslRepository.listActivity(request, userId);
 
         return Response.<PageDTO<ActivityDTO>>newBuilder()
                 .setSuccess(true)
@@ -122,6 +122,7 @@ public class ActivityServiceImpl implements ActivityService {
                                         .setTotalParticipant(Math.toIntExact(i.getTotalParticipant()))
                                         .setOrganization(getOrganization(i.getCreateUserId()))
                                         .setStatus(getActivityStatus(i.getStartRegister(), i.getEndRegister(), Math.toIntExact(i.getTotalParticipant()), i.getMaxQuantity()))
+                                        .setRegistered(i.getRegistered())
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
