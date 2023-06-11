@@ -69,7 +69,7 @@ public class UserDslRepository {
                 query.orderBy(new OrderSpecifier<>(_order, user.fullName));
             }
         } else {
-            query.orderBy(new OrderSpecifier<>(_order, user.role.roleId));
+            query.orderBy(new OrderSpecifier<>(_order, user.studentId, OrderSpecifier.NullHandling.NullsFirst));
         }
         query.leftJoin(user.role).fetchJoin();
         query.leftJoin(user.clazz).fetchJoin();

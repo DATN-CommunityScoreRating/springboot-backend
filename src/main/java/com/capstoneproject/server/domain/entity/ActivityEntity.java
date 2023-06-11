@@ -54,4 +54,10 @@ public class ActivityEntity {
 
     @Column(name = "create_user_id")
     private Long createUserId;
+
+    @Column(name = "create_date")
+    private Timestamp createDate;
+
+    @Column(name = "modify_date")
+    private Timestamp modifyDate;
 }

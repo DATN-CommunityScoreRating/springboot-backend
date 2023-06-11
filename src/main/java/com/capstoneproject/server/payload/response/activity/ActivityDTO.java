@@ -24,4 +24,5 @@ public class ActivityDTO {
     private Integer totalParticipant;
     private Integer maxQuantity;
     private String description;
+    private Boolean registered;
 }

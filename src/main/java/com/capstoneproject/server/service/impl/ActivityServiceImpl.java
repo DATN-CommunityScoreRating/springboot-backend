@@ -9,7 +9,6 @@ import com.capstoneproject.server.converter.UserConverter;
 import com.capstoneproject.server.domain.entity.ActivityEntity;
 import com.capstoneproject.server.domain.entity.UserActivityEntity;
 import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
-import com.capstoneproject.server.domain.projection.ActivityProjection;
 import com.capstoneproject.server.domain.repository.ActivityRepository;
 import com.capstoneproject.server.domain.repository.UserActivityRepository;
 import com.capstoneproject.server.domain.repository.UserRepository;
@@ -29,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -73,6 +71,9 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setMaxQuantity(request.getMaxQuantity());
         activity.setLocation(request.getLocation());
         activity.setCreateUserId(securityUtils.getPrincipal().getUserId());
+        activity.setCreateDate(new Timestamp(System.currentTimeMillis()));
+        activity.setModifyDate(new Timestamp(System.currentTimeMillis()));
+
         try {
             activity.setStartDate(DateTimeUtils.string2Timestamp(request.getStartDate()));
             activity.setEndDate(DateTimeUtils.string2Timestamp(request.getEndDate()));
@@ -99,7 +100,8 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     public Response<PageDTO<ActivityDTO>> listActivity(ListActivitiesRequest request) {
-        var activityPage = activityDslRepository.listActivity(request);
+        Long userId = securityUtils.getPrincipal().getUserId();
+        var activityPage = activityDslRepository.listActivity(request, userId);
 
         return Response.<PageDTO<ActivityDTO>>newBuilder()
                 .setSuccess(true)
@@ -120,6 +122,7 @@ public class ActivityServiceImpl implements ActivityService {
                                         .setTotalParticipant(Math.toIntExact(i.getTotalParticipant()))
                                         .setOrganization(getOrganization(i.getCreateUserId()))
                                         .setStatus(getActivityStatus(i.getStartRegister(), i.getEndRegister(), Math.toIntExact(i.getTotalParticipant()), i.getMaxQuantity()))
+                                        .setRegistered(i.getRegistered())
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
