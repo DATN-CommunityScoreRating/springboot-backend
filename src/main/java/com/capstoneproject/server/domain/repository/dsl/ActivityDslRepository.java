@@ -7,6 +7,7 @@ import com.capstoneproject.server.domain.projection.ActivityProjection;
 import com.capstoneproject.server.payload.request.activity.ListActivitiesRequest;
 import com.capstoneproject.server.payload.request.activity.UserActivityRequest;
 import com.capstoneproject.server.util.RequestUtils;
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
@@ -69,12 +70,12 @@ public class ActivityDslRepository {
         return new Page<>(query.fetch(), countQuery.fetchFirst());
     }
 
-    public Page<UserEntity> listUserActivity(Long activityId, UserActivityRequest request){
+    public Page<Tuple> listUserActivity(Long activityId, UserActivityRequest request){
         var page = RequestUtils.getPage(request.getPage());
         var size = RequestUtils.getSize(request.getSize());
         var offset = page * size;
 
-        JPAQuery<UserEntity> query = queryBuilder.select(user)
+        JPAQuery<Tuple> query = queryBuilder.select(user, userActivity)
                 .from(user, userActivity)
                 .where(userActivity.user.userId.eq(user.userId))
                 .where(userActivity.activity.activityId.eq(activityId));
