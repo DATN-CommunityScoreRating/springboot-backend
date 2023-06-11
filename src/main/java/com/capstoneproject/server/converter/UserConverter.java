@@ -1,9 +1,11 @@
 package com.capstoneproject.server.converter;
 
 import com.capstoneproject.server.domain.entity.FacultyEntity;
+import com.capstoneproject.server.domain.entity.UserActivityEntity;
 import com.capstoneproject.server.domain.entity.UserEntity;
 import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
 import com.capstoneproject.server.payload.response.UserDTO;
+import com.capstoneproject.server.payload.response.activity.StudentActivityDTO;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
@@ -35,12 +37,36 @@ public class UserConverter {
                 .role(entity.getRole().getRoleName())
                 .faculty(StringUtils.defaultString(prefetchEntityProvider.getFacultyEntityMap().
                         getOrDefault(entity.getClazz() != null ?
-                                entity.getClazz().getClassId() : -1L,
+                                entity.getClazz().getFaculty().getFacultyId() : -1L,
                                 new FacultyEntity()).getFacultyName()))
                 .build();
     }
 
     public static void setPrefetchEntityProvider(PrefetchEntityProvider provider){
         prefetchEntityProvider = provider;
+    }
+    public static StudentActivityDTO map(UserEntity entity, UserActivityEntity userActivity){
+        return StudentActivityDTO.builder()
+                .userId(entity.getUserId())
+                .classId(entity.getClazz() != null ? entity.getClazz().getClassId() : -1)
+                .avatar(StringUtils.defaultString(entity.getAvatar()))
+                .className(entity.getClazz() != null ? entity.getClazz().getClassName() : "")
+                .email(entity.getEmail())
+                .avatar(entity.getAvatar())
+                .score(entity.getScore())
+                .phoneNumber(StringUtils.defaultString(entity.getPhoneNumber()))
+                .fullName(entity.getFullName())
+                .studentId(StringUtils.defaultString(entity.getStudentId()))
+                .username(entity.getUsername())
+                .roleId(entity.getRole().getRoleId())
+                .role(entity.getRole().getRoleName())
+                .faculty(StringUtils.defaultString(prefetchEntityProvider.getFacultyEntityMap().
+                        getOrDefault(entity.getClazz() != null ?
+                                        entity.getClazz().getFaculty().getFacultyId() : -1L,
+                                new FacultyEntity()).getFacultyName()))
+                .userActivityId(userActivity.getUserActivityId())
+                .statusId(userActivity.getStatus().getUserActivityStatusId())
+                .status(prefetchEntityProvider.getUserActivityStatusEntityMap().get(userActivity.getStatus().getUserActivityStatusId()).getStatus())
+                .build();
     }
 }

@@ -8,6 +8,7 @@ import com.capstoneproject.server.common.enums.UserActivityStatus;
 import com.capstoneproject.server.converter.UserConverter;
 import com.capstoneproject.server.domain.entity.ActivityEntity;
 import com.capstoneproject.server.domain.entity.UserActivityEntity;
+import com.capstoneproject.server.domain.entity.UserEntity;
 import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
 import com.capstoneproject.server.domain.repository.ActivityRepository;
 import com.capstoneproject.server.domain.repository.UserActivityRepository;
@@ -20,6 +21,7 @@ import com.capstoneproject.server.payload.request.activity.RegistrationActivityR
 import com.capstoneproject.server.payload.request.activity.UserActivityRequest;
 import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.payload.response.activity.ActivityDTO;
+import com.capstoneproject.server.payload.response.activity.StudentActivityDTO;
 import com.capstoneproject.server.service.ActivityService;
 import com.capstoneproject.server.util.DateTimeUtils;
 import com.capstoneproject.server.util.RequestUtils;
@@ -175,17 +177,21 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public Response<PageDTO<UserDTO>> getUserRegisterActivity(Long activityId, UserActivityRequest request) {
+    public Response<PageDTO<StudentActivityDTO>> getUserRegisterActivity(Long activityId, UserActivityRequest request) {
         var users = activityDslRepository.listUserActivity(activityId, request);
-        return  Response.<PageDTO<UserDTO>>newBuilder()
+        return  Response.<PageDTO<StudentActivityDTO>>newBuilder()
                 .setSuccess(true)
-                .setData(PageDTO.<UserDTO>builder()
+                .setData(PageDTO.<StudentActivityDTO>builder()
                         .page(request.getPage())
                         .size(request.getSize())
                         .totalElements(users.getTotal())
                         .totalPages(RequestUtils.getTotalPage(users.getTotal(), request))
-                        .items(users.getItems().stream().map(UserConverter::map)
-                                .collect(Collectors.toList()))
+                        .items(users.getItems().stream()
+                                .map(item -> {
+                                    var user = item.get(0, UserEntity.class);
+                                    var userActivity = item.get(1, UserActivityEntity.class);
+                                    return UserConverter.map(user, userActivity);
+                                }).collect(Collectors.toList()))
                         .build())
                 .build();
     }
@@ -216,6 +222,52 @@ public class ActivityServiceImpl implements ActivityService {
                         .setStatus(getActivityStatus(activity.getStartRegister(), activity.getEndRegister(), Math.toIntExact(totalParticipant), activity.getMaxQuantity()))
                         .setDescription(activity.getDescription())
                         .build())
+                .build();
+    }
+
+    @Override
+    public Response<NoContentDTO> deleteUserActivity(Long userActivityId) {
+        var userActivity = userActivityRepository.findByIdAndFetchActivity(userActivityId).orElseThrow(() ->
+                new ObjectNotFoundException("userActivityId", userActivityId));
+
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+//        TODO: Validate
+        if (userActivity.getActivity().getStartDate().before(now)){
+            return Response.<NoContentDTO>newBuilder()
+                    .setSuccess(false)
+                    .setErrorCode(ErrorCode.ACTIVITY_GOING_ON)
+                    .setMessage("Can't not update activity going on")
+                    .build();
+        }
+
+        userActivityRepository.delete(userActivity);
+        return Response.<NoContentDTO>newBuilder()
+                .setSuccess(true)
+                .setData(NoContentDTO.builder().build())
+                .build();
+    }
+
+    @Override
+    public Response<NoContentDTO> deleteActivity(Long activityId) {
+        var activity = activityRepository.findById(activityId).orElseThrow(() ->
+            new ObjectNotFoundException("activityId", activityId));
+
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        if (activity.getStartDate().before(now)){
+            return Response.<NoContentDTO>newBuilder()
+                    .setSuccess(false)
+                    .setErrorCode(ErrorCode.ACTIVITY_GOING_ON)
+                    .setMessage("Can't not update activity going on")
+                    .build();
+        }
+
+        var listUserActivity = userActivityRepository.findAllByActivityId(activityId);
+        userActivityRepository.deleteAll(listUserActivity);
+        activityRepository.delete(activity);
+        return Response.<NoContentDTO>newBuilder()
+                .setSuccess(true)
+                .setData(NoContentDTO.builder().build())
                 .build();
     }
 

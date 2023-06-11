@@ -4,11 +4,9 @@ import com.capstoneproject.server.payload.request.activity.AddActivityRequest;
 import com.capstoneproject.server.payload.request.activity.ListActivitiesRequest;
 import com.capstoneproject.server.payload.request.activity.RegistrationActivityRequest;
 import com.capstoneproject.server.payload.request.activity.UserActivityRequest;
-import com.capstoneproject.server.payload.response.OnlyIDDTO;
-import com.capstoneproject.server.payload.response.PageDTO;
-import com.capstoneproject.server.payload.response.Response;
-import com.capstoneproject.server.payload.response.UserDTO;
+import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.payload.response.activity.ActivityDTO;
+import com.capstoneproject.server.payload.response.activity.StudentActivityDTO;
 
 /**
  * @author dai.le-anh
@@ -22,7 +20,11 @@ public interface ActivityService {
 
     Response<OnlyIDDTO> registrationActivity(RegistrationActivityRequest request);
 
-    Response<PageDTO<UserDTO>> getUserRegisterActivity(Long activityId, UserActivityRequest request);
+    Response<PageDTO<StudentActivityDTO>> getUserRegisterActivity(Long activityId, UserActivityRequest request);
 
     Response<ActivityDTO> findById(Long activityId);
+
+    Response<NoContentDTO> deleteUserActivity(Long userActivityId);
+
+    Response<NoContentDTO> deleteActivity(Long activityId);
 }

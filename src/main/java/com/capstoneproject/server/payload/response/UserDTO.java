@@ -1,6 +1,7 @@
 package com.capstoneproject.server.payload.response;
 
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 /**
  * @author dai.le-anh
@@ -12,7 +13,7 @@ import lombok.*;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 public class UserDTO {
     private Long userId;
     private String username;
