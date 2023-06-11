@@ -30,7 +30,7 @@ public class ActivityDslRepository {
     private final QActivityEntity activity = QActivityEntity.activityEntity;
     private final QUserActivityEntity userActivity = QUserActivityEntity.userActivityEntity;
 
-    public Page<ActivityProjection> listActivity(ListActivitiesRequest request){
+    public Page<ActivityProjection> listActivity(ListActivitiesRequest request, Long userId){
         var page = RequestUtils.getPage(request.getPage());
         var size = RequestUtils.getSize(request.getSize());
         var offset = page * size;
@@ -39,7 +39,10 @@ public class ActivityDslRepository {
                         activity.endDate, activity.location, activity.maxQuantity,
                         queryBuilder.select(userActivity.count()).from(userActivity)
                                 .where(userActivity.activity.activityId.eq(activity.activityId)),
-                        activity.score, activity.createUserId, activity.startRegister, activity.endRegister))
+                        activity.score, activity.createUserId, activity.startRegister, activity.endRegister,
+                        queryBuilder.selectZero().from(userActivity).where(activity.activityId.eq(userActivity.activity.activityId))
+                                .where(userActivity.user.userId.eq(userId))
+                                .exists()))
                 .from(activity);
         JPAQuery<Long> countQuery = query.clone().select(activity.countDistinct());
 

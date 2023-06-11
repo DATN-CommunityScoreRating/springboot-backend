@@ -28,4 +28,5 @@ public class ActivityProjection {
     private Long createUserId;
     private Timestamp startRegister;
     private Timestamp endRegister;
+    private Boolean registered;
 }
