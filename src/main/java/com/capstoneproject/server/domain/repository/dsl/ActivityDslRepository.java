@@ -1,6 +1,8 @@
 package com.capstoneproject.server.domain.repository.dsl;
 
+import com.capstoneproject.server.common.CommunityBKDNPrincipal;
 import com.capstoneproject.server.common.enums.SortDirection;
+import com.capstoneproject.server.common.enums.UserActivityStatus;
 import com.capstoneproject.server.domain.dto.Page;
 import com.capstoneproject.server.domain.entity.*;
 import com.capstoneproject.server.domain.projection.ActivityProjection;
@@ -11,11 +13,15 @@ import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.DateTimeExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
+
+import java.sql.Timestamp;
 
 /**
  * @author dai.le-anh
@@ -31,7 +37,7 @@ public class ActivityDslRepository {
     private final QActivityEntity activity = QActivityEntity.activityEntity;
     private final QUserActivityEntity userActivity = QUserActivityEntity.userActivityEntity;
 
-    public Page<ActivityProjection> listActivity(ListActivitiesRequest request, Long userId){
+    public Page<ActivityProjection> listActivity(ListActivitiesRequest request, CommunityBKDNPrincipal principal){
         var page = RequestUtils.getPage(request.getPage());
         var size = RequestUtils.getSize(request.getSize());
         var offset = page * size;
@@ -42,9 +48,26 @@ public class ActivityDslRepository {
                                 .where(userActivity.activity.activityId.eq(activity.activityId)),
                         activity.score, activity.createUserId, activity.startRegister, activity.endRegister,
                         queryBuilder.selectZero().from(userActivity).where(activity.activityId.eq(userActivity.activity.activityId))
-                                .where(userActivity.user.userId.eq(userId))
+                                .where(userActivity.user.userId.eq(principal.getUserId()))
+                                .exists(),
+                        queryBuilder.selectZero().from(userActivity).where(activity.activityId.eq(userActivity.activity.activityId))
+                                .where(userActivity.status.status.eq(UserActivityStatus.SEND_PROOF.status))
                                 .exists()))
                 .from(activity);
+
+        if (principal.isStudent()) {
+            query.where(activity.startRegister.loe(DateTimeExpression.currentTimestamp(Timestamp.class)));
+        }
+
+        if (request.getIsRegistered() != null && request.getIsRegistered()){
+            query.where(
+                    queryBuilder.selectZero()
+                            .from(userActivity)
+                            .where(userActivity.activity.activityId.eq(activity.activityId))
+                            .exists()
+            );
+        }
+
         JPAQuery<Long> countQuery = query.clone().select(activity.countDistinct());
 
         Order _order = StringUtils.isNotBlank(request.getDirection())

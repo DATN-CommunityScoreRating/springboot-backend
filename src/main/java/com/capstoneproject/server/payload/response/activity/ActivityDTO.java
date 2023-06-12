@@ -25,4 +25,7 @@ public class ActivityDTO {
     private Integer maxQuantity;
     private String description;
     private Boolean registered;
+    private String startRegister;
+    private String endRegister;
+    private Boolean needConfirmation;
 }

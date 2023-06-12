@@ -26,15 +26,29 @@ import com.capstoneproject.server.service.ActivityService;
 import com.capstoneproject.server.util.DateTimeUtils;
 import com.capstoneproject.server.util.RequestUtils;
 import com.capstoneproject.server.util.SecurityUtils;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
+import javax.servlet.ServletContext;
+import javax.transaction.Transactional;
+import javax.xml.bind.DatatypeConverter;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -44,6 +58,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Log4j2
 public class ActivityServiceImpl implements ActivityService {
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
@@ -51,8 +66,11 @@ public class ActivityServiceImpl implements ActivityService {
     private final SecurityUtils securityUtils;
     private final PrefetchEntityProvider prefetchEntityProvider;
     private final UserActivityRepository userActivityRepository;
+    private final Cloudinary cloudinary;
+    private final ServletContext context;
 
     @Override
+    @Transactional
     public Response<OnlyIDDTO> addActivity(AddActivityRequest request) {
         List<ErrorDTO> errors = new ArrayList<>();
         validateActivity(request, errors);
@@ -66,9 +84,11 @@ public class ActivityServiceImpl implements ActivityService {
                     .build();
         }
 
+        var description = getAllImage(request.getDescription());
+
         ActivityEntity activity = new ActivityEntity();
         activity.setName(request.getActivityName());
-        activity.setDescription(request.getDescription());
+        activity.setDescription(description);
         activity.setScore(request.getScore());
         activity.setMaxQuantity(request.getMaxQuantity());
         activity.setLocation(request.getLocation());
@@ -100,10 +120,40 @@ public class ActivityServiceImpl implements ActivityService {
                 .build();
     }
 
+    private String getAllImage(String description) {
+        Matcher matcher = Pattern.compile(Constant.IMAGE_TAG_REGEX).matcher(description);
+        while (matcher.find()) {
+            String base64Image = matcher.group().split(",")[1];
+            byte[] imageBytes = DatatypeConverter.parseBase64Binary(base64Image);
+            try (InputStream in = new ByteArrayInputStream(imageBytes)) {
+                BufferedImage image = ImageIO.read(in);
+                File outPut = new File(getClass().getClassLoader().getResource(".").getFile() + "/activity" + System.currentTimeMillis() + ".png");
+                ImageIO.write(image, "png", outPut);
+                var uploadResult = cloudinary.uploader().upload(outPut, ObjectUtils.asMap(
+                        "use_filename", true,
+                        "unique_filename", false,
+                        "folder", "communityscorebkdn/activity"
+                ));
+                log.info("Upload success {}", uploadResult.size());
+                description = description.replace(matcher.group(), "src=\"" + uploadResult.get("url") + "\"");
+                if (outPut.delete()) {
+                    log.info("Delete tmp image successfully");
+                } else {
+                    log.error("Failure when delete tmp image");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return description;
+    }
+
     @Override
     public Response<PageDTO<ActivityDTO>> listActivity(ListActivitiesRequest request) {
-        Long userId = securityUtils.getPrincipal().getUserId();
-        var activityPage = activityDslRepository.listActivity(request, userId);
+        var principal = securityUtils.getPrincipal();
+        var activityPage = activityDslRepository.listActivity(request, principal);
+
 
         return Response.<PageDTO<ActivityDTO>>newBuilder()
                 .setSuccess(true)
@@ -121,10 +171,13 @@ public class ActivityServiceImpl implements ActivityService {
                                         .setName(i.getActivityName())
                                         .setStartDate(DateTimeUtils.timestamp2String(i.getStartDate()))
                                         .setEndDate(DateTimeUtils.timestamp2String(i.getEndDate()))
+                                        .setStartRegister(DateTimeUtils.timestamp2String(i.getStartRegister()))
+                                        .setEndRegister(DateTimeUtils.timestamp2String(i.getEndRegister()))
                                         .setTotalParticipant(Math.toIntExact(i.getTotalParticipant()))
                                         .setOrganization(getOrganization(i.getCreateUserId()))
-                                        .setStatus(getActivityStatus(i.getStartRegister(), i.getEndRegister(), Math.toIntExact(i.getTotalParticipant()), i.getMaxQuantity()))
+                                        .setStatus(getActivityStatus(i.getStartDate(), i.getEndDate(), i.getStartRegister(), i.getEndRegister(), Math.toIntExact(i.getTotalParticipant()), i.getMaxQuantity()))
                                         .setRegistered(i.getRegistered())
+                                        .setNeedConfirmation(i.getNeedConfirmation())
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
@@ -219,7 +272,7 @@ public class ActivityServiceImpl implements ActivityService {
                         .setEndDate(DateTimeUtils.timestamp2String(activity.getEndDate()))
                         .setTotalParticipant(Math.toIntExact(totalParticipant))
                         .setOrganization(getOrganization(activity.getCreateUserId()))
-                        .setStatus(getActivityStatus(activity.getStartRegister(), activity.getEndRegister(), Math.toIntExact(totalParticipant), activity.getMaxQuantity()))
+                        .setStatus(getActivityStatus(activity.getStartDate(), activity.getEndDate(), activity.getStartRegister(), activity.getEndRegister(), Math.toIntExact(totalParticipant), activity.getMaxQuantity()))
                         .setDescription(activity.getDescription())
                         .build())
                 .build();
@@ -271,10 +324,18 @@ public class ActivityServiceImpl implements ActivityService {
                 .build();
     }
 
-    private String getActivityStatus(Timestamp startRegister, Timestamp endRegister, int totalParticipant, int maxQuantity) {
+    private String getActivityStatus(Timestamp startDate, Timestamp endDate, Timestamp startRegister, Timestamp endRegister, int totalParticipant, int maxQuantity) {
         Date now = new Date();
 
-        if (now.after(new Date(endRegister.getTime()))){
+        if (now.after(new Date(startDate.getTime())) && now.before(new Date(endDate.getTime()))){
+            return ActivityStatus.GOING_ON.name();
+        }
+
+        if (now.after(new Date(endRegister.getTime())) && now.before(new Date(startDate.getTime()))){
+            return ActivityStatus.IS_COMING.name();
+        }
+
+        if (now.after(new Date(endDate.getTime()))){
             return ActivityStatus.EXPIRED.name();
         }
 
