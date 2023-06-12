@@ -30,4 +30,6 @@ public class Constant {
         public static final String TOPIC = "community_score.student_registration";
     }
 
+    public static final String IMAGE_TAG_REGEX = "src=\"(data:image/[^;]+;base64[^\"]+)\"";
+
 }

@@ -15,5 +15,7 @@ public enum ActivityStatus {
     EXPIRED,
     PENDING,
     FULLY,
+    GOING_ON,
+    IS_COMING,
     DISABLE
 }

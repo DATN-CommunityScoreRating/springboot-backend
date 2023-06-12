@@ -12,4 +12,5 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ListActivitiesRequest extends AbstractPageRequest {
+    private Boolean isRegistered;
 }
