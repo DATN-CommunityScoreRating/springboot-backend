@@ -29,4 +29,5 @@ public class ActivityProjection {
     private Timestamp startRegister;
     private Timestamp endRegister;
     private Boolean registered;
+    private Boolean needConfirmation;
 }

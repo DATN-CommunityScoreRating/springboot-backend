@@ -21,6 +21,7 @@
 		<slf4j.version>1.6.1</slf4j.version>
 		<opencsv.version>5.7.1</opencsv.version>
 		<redis.version>3.0.3</redis.version>
+		<cloudinary.version>1.32.2</cloudinary.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -111,6 +112,16 @@
 			<groupId>com.opencsv</groupId>
 			<artifactId>opencsv</artifactId>
 			<version>${opencsv.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-http44</artifactId>
+			<version>${cloudinary.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-taglib</artifactId>
+			<version>${cloudinary.version}</version>
 		</dependency>
 	</dependencies>
 
