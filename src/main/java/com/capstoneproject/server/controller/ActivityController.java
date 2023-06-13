@@ -1,10 +1,7 @@
 package com.capstoneproject.server.controller;
 
 import com.capstoneproject.server.common.constants.CommunityBKDNPermission;
-import com.capstoneproject.server.payload.request.activity.AddActivityRequest;
-import com.capstoneproject.server.payload.request.activity.ListActivitiesRequest;
-import com.capstoneproject.server.payload.request.activity.RegistrationActivityRequest;
-import com.capstoneproject.server.payload.request.activity.UserActivityRequest;
+import com.capstoneproject.server.payload.request.activity.*;
 import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.payload.response.activity.ActivityDTO;
 import com.capstoneproject.server.payload.response.activity.StudentActivityDTO;
@@ -13,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -77,6 +75,18 @@ public class ActivityController {
     @Operation(summary = "Delete Activity")
     public Response<NoContentDTO> deleteActivity(@PathVariable("id") Long activityId){
         return activityService.deleteActivity(activityId);
+    }
+
+    @Operation(summary = "Get my activity")
+    @GetMapping("my-activity")
+    public Response<PageDTO<ActivityDTO>> myActivity(@ModelAttribute MyActivityRequest request){
+        return activityService.myActivity(request);
+    }
+
+    @Operation(summary = "Cancel my activity")
+    @DeleteMapping("cancel/{id}")
+    public Response<NoContentDTO> cancelActivity(@PathVariable("id") Long activityId){
+        return activityService.cancelActivity(activityId);
     }
 
 }

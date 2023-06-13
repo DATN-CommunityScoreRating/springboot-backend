@@ -1,11 +1,13 @@
 package com.capstoneproject.server.service.impl;
 
+import com.capstoneproject.server.common.CommunityBKDNPrincipal;
 import com.capstoneproject.server.common.constants.CommunityBKDNPermission;
 import com.capstoneproject.server.common.constants.Constant;
 import com.capstoneproject.server.common.enums.ActivityStatus;
 import com.capstoneproject.server.common.enums.ErrorCode;
 import com.capstoneproject.server.common.enums.UserActivityStatus;
 import com.capstoneproject.server.converter.UserConverter;
+import com.capstoneproject.server.domain.dto.Page;
 import com.capstoneproject.server.domain.entity.ActivityEntity;
 import com.capstoneproject.server.domain.entity.UserActivityEntity;
 import com.capstoneproject.server.domain.entity.UserEntity;
@@ -15,10 +17,7 @@ import com.capstoneproject.server.domain.repository.UserActivityRepository;
 import com.capstoneproject.server.domain.repository.UserRepository;
 import com.capstoneproject.server.domain.repository.dsl.ActivityDslRepository;
 import com.capstoneproject.server.exception.ObjectNotFoundException;
-import com.capstoneproject.server.payload.request.activity.AddActivityRequest;
-import com.capstoneproject.server.payload.request.activity.ListActivitiesRequest;
-import com.capstoneproject.server.payload.request.activity.RegistrationActivityRequest;
-import com.capstoneproject.server.payload.request.activity.UserActivityRequest;
+import com.capstoneproject.server.payload.request.activity.*;
 import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.payload.response.activity.ActivityDTO;
 import com.capstoneproject.server.payload.response.activity.StudentActivityDTO;
@@ -322,6 +321,46 @@ public class ActivityServiceImpl implements ActivityService {
                 .setSuccess(true)
                 .setData(NoContentDTO.builder().build())
                 .build();
+    }
+
+    @Override
+    public Response<PageDTO<ActivityDTO>> myActivity(MyActivityRequest request) {
+        CommunityBKDNPrincipal principal = securityUtils.getPrincipal();
+        var myActivity = activityDslRepository.findMyActivity(request, principal.getUserId());
+
+        return Response.<PageDTO<ActivityDTO>>newBuilder()
+                .setSuccess(true)
+                .setData(PageDTO.<ActivityDTO>builder()
+                        .page(request.getPage())
+                        .size(request.getSize())
+                        .totalElements(myActivity.getTotal())
+                        .totalPages(RequestUtils.getTotalPage(myActivity.getTotal(), request))
+                        .items(myActivity.getItems().stream()
+                                .map(i -> ActivityDTO.newBuilder()
+                                        .setActivityId(i.getActivity().getActivityId())
+                                        .setScore(i.getActivity().getScore())
+                                        .setMaxQuantity(i.getActivity().getMaxQuantity())
+                                        .setLocation(i.getActivity().getLocation())
+                                        .setName(i.getActivity().getName())
+                                        .setStartDate(DateTimeUtils.timestamp2String(i.getActivity().getStartDate()))
+                                        .setEndDate(DateTimeUtils.timestamp2String(i.getActivity().getEndDate()))
+                                        .setStartRegister(DateTimeUtils.timestamp2String(i.getActivity().getStartRegister()))
+                                        .setEndRegister(DateTimeUtils.timestamp2String(i.getActivity().getEndRegister()))
+                                        .setOrganization(getOrganization(i.getActivity().getCreateUserId()))
+                                        .setUserActivityStatus(prefetchEntityProvider.getUserActivityStatusEntityMap().get(i.getStatus().getUserActivityStatusId()).getStatus())
+                                        .setStatus(getActivityStatus(i.getActivity().getStartDate(), i.getActivity().getEndDate(), i.getActivity().getStartRegister(), i.getActivity().getEndRegister(), -1, i.getActivity().getMaxQuantity()))
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build())
+                .build();
+    }
+
+    @Override
+    public Response<NoContentDTO> cancelActivity(Long activityId) {
+        var principal = securityUtils.getPrincipal();
+        var userActivity = userActivityRepository.findByActivityIdAndUserId(activityId, principal.getUserId())
+                .orElseThrow(() -> new ObjectNotFoundException("activityId", activityId));
+        return deleteUserActivity(userActivity.getUserActivityId());
     }
 
     private String getActivityStatus(Timestamp startDate, Timestamp endDate, Timestamp startRegister, Timestamp endRegister, int totalParticipant, int maxQuantity) {

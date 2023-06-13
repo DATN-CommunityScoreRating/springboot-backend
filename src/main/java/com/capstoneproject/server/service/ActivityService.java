@@ -1,9 +1,6 @@
 package com.capstoneproject.server.service;
 
-import com.capstoneproject.server.payload.request.activity.AddActivityRequest;
-import com.capstoneproject.server.payload.request.activity.ListActivitiesRequest;
-import com.capstoneproject.server.payload.request.activity.RegistrationActivityRequest;
-import com.capstoneproject.server.payload.request.activity.UserActivityRequest;
+import com.capstoneproject.server.payload.request.activity.*;
 import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.payload.response.activity.ActivityDTO;
 import com.capstoneproject.server.payload.response.activity.StudentActivityDTO;
@@ -27,4 +24,8 @@ public interface ActivityService {
     Response<NoContentDTO> deleteUserActivity(Long userActivityId);
 
     Response<NoContentDTO> deleteActivity(Long activityId);
+
+    Response<PageDTO<ActivityDTO>> myActivity(MyActivityRequest request);
+
+    Response<NoContentDTO> cancelActivity(Long activityId);
 }
