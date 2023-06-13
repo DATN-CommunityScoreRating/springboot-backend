@@ -127,7 +127,7 @@ public class ActivityServiceImpl implements ActivityService {
             byte[] imageBytes = DatatypeConverter.parseBase64Binary(base64Image);
             try (InputStream in = new ByteArrayInputStream(imageBytes)) {
                 BufferedImage image = ImageIO.read(in);
-                File outPut = new File(getClass().getClassLoader().getResource(".").getFile() + "/activity" + System.currentTimeMillis() + ".png");
+                File outPut = new File(context.getRealPath(""), "/activity" + System.currentTimeMillis() + ".png");
                 ImageIO.write(image, "png", outPut);
                 var uploadResult = cloudinary.uploader().upload(outPut, ObjectUtils.asMap(
                         "use_filename", true,
