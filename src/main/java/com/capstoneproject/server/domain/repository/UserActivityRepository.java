@@ -4,6 +4,7 @@ import com.capstoneproject.server.domain.entity.UserActivityEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -28,4 +29,9 @@ public interface UserActivityRepository extends JpaRepository<UserActivityEntity
     @Query(value = "SELECT ua FROM UserActivityEntity ua " +
             "WHERE ua.activity.activityId = :activityId")
     List<UserActivityEntity> findAllByActivityId(@Param("activityId") Long activityId);
+
+    @Query(value = "SELECT ua FROM UserActivityEntity ua " +
+            "WHERE ua.activity.activityId = :activityId " +
+            "AND ua.user.userId = :userId")
+    Optional<UserActivityEntity> findByActivityIdAndUserId(@Param("activityId") Long activityId, @Param("userId") Long userId);
 }
