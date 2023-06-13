@@ -28,4 +28,5 @@ public class ActivityDTO {
     private String startRegister;
     private String endRegister;
     private Boolean needConfirmation;
+    private String userActivityStatus;
 }
