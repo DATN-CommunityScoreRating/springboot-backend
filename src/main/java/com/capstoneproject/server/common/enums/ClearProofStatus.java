@@ -5,17 +5,15 @@ import lombok.AllArgsConstructor;
 
 /**
  * @author dai.le-anh
- * @since 6/4/2023
+ * @since 6/17/2023
  */
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public enum UserActivityStatus {
-    REGISTERED(1L, "REGISTERED"),
-    SEND_PROOF(2L, "SEND_PROOF"),
-    CONFIRMED(3L, "CONFIRMED"),
-    NOT_ACCEPTED(4L, "NOT_ACCEPTED");
+public enum ClearProofStatus {
+    SEND_PROOF(1L, "SEND_PROOF"),
+    CONFIRMED(2L, "CONFIRMED"),
+    NOT_ACCEPTED(3L, "NOT_ACCEPTED");
 
     public final Long userActivityId;
     public final String status;
-
 }

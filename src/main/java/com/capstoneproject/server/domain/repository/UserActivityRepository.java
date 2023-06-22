@@ -31,6 +31,7 @@ public interface UserActivityRepository extends JpaRepository<UserActivityEntity
     List<UserActivityEntity> findAllByActivityId(@Param("activityId") Long activityId);
 
     @Query(value = "SELECT ua FROM UserActivityEntity ua " +
+            "LEFT JOIN FETCH ua.user " +
             "WHERE ua.activity.activityId = :activityId " +
             "AND ua.user.userId = :userId")
     Optional<UserActivityEntity> findByActivityIdAndUserId(@Param("activityId") Long activityId, @Param("userId") Long userId);

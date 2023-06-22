@@ -1,14 +1,8 @@
 package com.capstoneproject.server.domain.prefetch;
 
 import com.capstoneproject.server.converter.UserConverter;
-import com.capstoneproject.server.domain.entity.CourseEntity;
-import com.capstoneproject.server.domain.entity.FacultyEntity;
-import com.capstoneproject.server.domain.entity.RoleEntity;
-import com.capstoneproject.server.domain.entity.UserActivityStatusEntity;
-import com.capstoneproject.server.domain.repository.CourseRepository;
-import com.capstoneproject.server.domain.repository.FacultyRepository;
-import com.capstoneproject.server.domain.repository.RoleRepository;
-import com.capstoneproject.server.domain.repository.UserActivityStatusRepository;
+import com.capstoneproject.server.domain.entity.*;
+import com.capstoneproject.server.domain.repository.*;
 import lombok.Getter;
 import org.springframework.stereotype.Component;
 
@@ -35,10 +29,18 @@ public class PrefetchEntityProvider {
     private Map<Long, UserActivityStatusEntity> userActivityStatusEntityMap;
     private Map<String, UserActivityStatusEntity> userActivityStatusEntityCodeMap;
 
+    private Map<Long, ClearProofStatusEntity> clearProofStatusEntityMap;
+    private Map<String, ClearProofStatusEntity> clearProofStatusEntityCodeMap;
+
+    private Map<Long, ActivitySubCategoryEntity> activitySubCategoryEntityMap;
+
+
     public PrefetchEntityProvider(RoleRepository roleRepository,
                                   FacultyRepository facultyRepository,
                                   CourseRepository courseRepository,
-                                  UserActivityStatusRepository userActivityStatusRepository) {
+                                  UserActivityStatusRepository userActivityStatusRepository,
+                                  ClearProofStatusRepository clearProofStatusRepository,
+                                  ActivitySubCategoryRepository activitySubCategoryRepository) {
         var roles = roleRepository.findAll();
 
         this.roleEntityMap = roles.stream().collect(Collectors.toMap(RoleEntity::getRoleId, r -> r));
@@ -59,6 +61,14 @@ public class PrefetchEntityProvider {
         this.userActivityStatusEntityMap = userActivityStatus.stream().collect(Collectors.toMap(UserActivityStatusEntity::getUserActivityStatusId, c -> c));
         this.userActivityStatusEntityCodeMap = userActivityStatus.stream().collect(Collectors.toMap(UserActivityStatusEntity::getStatus, c -> c));
 
+        var clearPoofStatus = clearProofStatusRepository.findAll();
+
+        this.clearProofStatusEntityMap = clearPoofStatus.stream().collect(Collectors.toMap(ClearProofStatusEntity::getClearProofStatusId, c -> c));
+        this.clearProofStatusEntityCodeMap = clearPoofStatus.stream().collect(Collectors.toMap(ClearProofStatusEntity::getName, c -> c));
+
+        var activitySub = activitySubCategoryRepository.findAll();
+
+        this.activitySubCategoryEntityMap = activitySub.stream().collect(Collectors.toMap(ActivitySubCategoryEntity::getActivitySubCategoryId, c -> c));
         UserConverter.setPrefetchEntityProvider(this);
     }
 }

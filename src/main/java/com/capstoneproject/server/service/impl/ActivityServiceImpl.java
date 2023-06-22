@@ -7,7 +7,6 @@ import com.capstoneproject.server.common.enums.ActivityStatus;
 import com.capstoneproject.server.common.enums.ErrorCode;
 import com.capstoneproject.server.common.enums.UserActivityStatus;
 import com.capstoneproject.server.converter.UserConverter;
-import com.capstoneproject.server.domain.dto.Page;
 import com.capstoneproject.server.domain.entity.ActivityEntity;
 import com.capstoneproject.server.domain.entity.UserActivityEntity;
 import com.capstoneproject.server.domain.entity.UserEntity;
@@ -22,32 +21,20 @@ import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.payload.response.activity.ActivityDTO;
 import com.capstoneproject.server.payload.response.activity.StudentActivityDTO;
 import com.capstoneproject.server.service.ActivityService;
+import com.capstoneproject.server.util.CloudinaryUtils;
 import com.capstoneproject.server.util.DateTimeUtils;
 import com.capstoneproject.server.util.RequestUtils;
 import com.capstoneproject.server.util.SecurityUtils;
-import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-
-import javax.imageio.ImageIO;
-import javax.servlet.ServletContext;
 import javax.transaction.Transactional;
-import javax.xml.bind.DatatypeConverter;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -65,8 +52,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final SecurityUtils securityUtils;
     private final PrefetchEntityProvider prefetchEntityProvider;
     private final UserActivityRepository userActivityRepository;
-    private final Cloudinary cloudinary;
-    private final ServletContext context;
+    private final CloudinaryUtils cloudinaryUtils;
 
     @Override
     @Transactional
@@ -83,7 +69,7 @@ public class ActivityServiceImpl implements ActivityService {
                     .build();
         }
 
-        var description = getAllImage(request.getDescription());
+        var description = cloudinaryUtils.resolveText(request.getDescription());
 
         ActivityEntity activity = new ActivityEntity();
         activity.setName(request.getActivityName());
@@ -119,35 +105,6 @@ public class ActivityServiceImpl implements ActivityService {
                 .build();
     }
 
-    private String getAllImage(String description) {
-        Matcher matcher = Pattern.compile(Constant.IMAGE_TAG_REGEX).matcher(description);
-        while (matcher.find()) {
-            String base64Image = matcher.group().split(",")[1];
-            byte[] imageBytes = DatatypeConverter.parseBase64Binary(base64Image);
-            try (InputStream in = new ByteArrayInputStream(imageBytes)) {
-                BufferedImage image = ImageIO.read(in);
-                File outPut = new File(context.getRealPath(""), "/activity" + System.currentTimeMillis() + ".png");
-                ImageIO.write(image, "png", outPut);
-                var uploadResult = cloudinary.uploader().upload(outPut, ObjectUtils.asMap(
-                        "use_filename", true,
-                        "unique_filename", false,
-                        "folder", "communityscorebkdn/activity"
-                ));
-                log.info("Upload success {}", uploadResult.size());
-                description = description.replace(matcher.group(), "src=\"" + uploadResult.get("url") + "\"");
-                if (outPut.delete()) {
-                    log.info("Delete tmp image successfully");
-                } else {
-                    log.error("Failure when delete tmp image");
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        return description;
-    }
-
     @Override
     public Response<PageDTO<ActivityDTO>> listActivity(ListActivitiesRequest request) {
         var principal = securityUtils.getPrincipal();
@@ -176,7 +133,7 @@ public class ActivityServiceImpl implements ActivityService {
                                         .setOrganization(getOrganization(i.getCreateUserId()))
                                         .setStatus(getActivityStatus(i.getStartDate(), i.getEndDate(), i.getStartRegister(), i.getEndRegister(), Math.toIntExact(i.getTotalParticipant()), i.getMaxQuantity()))
                                         .setRegistered(i.getRegistered())
-                                        .setNeedConfirmation(i.getNeedConfirmation())
+                                        .setNeedConfirmation(!principal.isStudent() && i.getNeedConfirmation())
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
