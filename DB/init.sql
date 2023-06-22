@@ -94,9 +94,9 @@ create table activities
 create table clear_proof
 (
     clear_proof_id       bigint primary key not null auto_increment,
-    activity_category_id bigint             not null,
+    activity_category_id bigint             null,
     user_id              bigint             not null,
-    name                 varchar(255)       not null,
+    name                 varchar(255)       null,
     description          varchar(255)       not null,
     attach               varchar(255)       not null,
     status_id            bigint             not null,
