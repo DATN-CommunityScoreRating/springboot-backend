@@ -1,5 +1,6 @@
 package com.capstoneproject.server.domain.repository.dsl;
 
+import com.capstoneproject.server.common.CommunityBKDNPrincipal;
 import com.capstoneproject.server.common.enums.SortDirection;
 import com.capstoneproject.server.domain.dto.Page;
 import com.capstoneproject.server.domain.entity.ClassEntity;
@@ -24,13 +25,17 @@ public class ClassDslRepository {
     private final QClassEntity clazz = QClassEntity.classEntity;
     private final JPAQueryFactory queryFactory;
 
-    public Page<ClassEntity> getListClass(GetAllClassRequest request){
+    public Page<ClassEntity> getListClass(GetAllClassRequest request, CommunityBKDNPrincipal principal, Long facultyId){
         var page = RequestUtils.getPage(request.getPage());
         var size = RequestUtils.getSize(request.getSize());
         var offset = page * size;
 
         JPAQuery<ClassEntity> query = queryFactory.select(clazz)
                 .from(clazz);
+
+        if (principal.isFaculty() || principal.isUnion()){
+            query.where(clazz.faculty.facultyId.eq(facultyId));
+        }
 
         if (request.getCourseId() != null && request.getCourseId() > 0){
             query.where(clazz.courseEntity.courseId.eq(request.getCourseId()));

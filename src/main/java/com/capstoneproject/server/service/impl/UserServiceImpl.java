@@ -109,6 +109,17 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
     @Override
     public Response<PageDTO<UserDTO>> getListUser(GetUserRequest request) {
+        var principal = securityUtils.getPrincipal();
+
+        if (principal.isClass()){
+            var user = userRepository.findById(principal.getUserId()).get();
+            request.setClassId(user.getClazz().getClassId());
+        }
+
+        if (principal.isUnion() || principal.isFaculty()){
+            var user = userRepository.findById(principal.getUserId()).get();
+            request.setFacultyId(user.getFacultyId());
+        }
         var users = userDslRepository.getAllUser(RequestUtils.getPage(request.getPage()), RequestUtils.getSize(request.getSize()), request.getSort(), request.getDirection(),
                 request.getClassId(), request.getRoleId(), request.getSearchTerm(), request.getFacultyId());
 

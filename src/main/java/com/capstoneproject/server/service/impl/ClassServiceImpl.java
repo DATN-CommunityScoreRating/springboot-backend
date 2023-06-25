@@ -1,6 +1,7 @@
 package com.capstoneproject.server.service.impl;
 
 import com.capstoneproject.server.cache.JacksonRedisUtil;
+import com.capstoneproject.server.common.CommunityBKDNPrincipal;
 import com.capstoneproject.server.common.enums.ErrorCode;
 import com.capstoneproject.server.domain.dto.ImportClassCsv;
 import com.capstoneproject.server.domain.entity.ClassEntity;
@@ -8,6 +9,7 @@ import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
 import com.capstoneproject.server.domain.repository.ClassRepository;
 import com.capstoneproject.server.domain.repository.CourseRepository;
 import com.capstoneproject.server.domain.repository.FacultyRepository;
+import com.capstoneproject.server.domain.repository.UserRepository;
 import com.capstoneproject.server.domain.repository.dsl.ClassDslRepository;
 import com.capstoneproject.server.exception.ObjectNotFoundException;
 import com.capstoneproject.server.payload.request.ImportRequest;
@@ -43,6 +45,7 @@ public class ClassServiceImpl implements ClassService {
     private final PrefetchEntityProvider prefetchEntityProvider;
     private final FacultyRepository facultyRepository;
     private final CourseRepository courseRepository;
+    private final UserRepository userRepository;
     private final ClassRepository classRepository;
     private final SecurityUtils securityUtils;
     private final JacksonRedisUtil jacksonRedisUtil;
@@ -181,7 +184,9 @@ public class ClassServiceImpl implements ClassService {
 
     @Override
     public Response<PageDTO<ClassDTO>> findClass(GetAllClassRequest request) {
-        var classPage = classDslRepository.getListClass(request);
+        var principal = securityUtils.getPrincipal();
+        var user = userRepository.findById(principal.getUserId()).get();
+        var classPage = classDslRepository.getListClass(request, principal, user.getFacultyId());
         return Response.<PageDTO<ClassDTO>>newBuilder()
                 .setSuccess(true)
                 .setData(PageDTO.<ClassDTO>builder()
