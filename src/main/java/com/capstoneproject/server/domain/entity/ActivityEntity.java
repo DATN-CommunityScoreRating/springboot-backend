@@ -37,6 +37,9 @@ public class ActivityEntity {
     @Column(name = "end_date")
     private Timestamp endDate;
 
+    @Column(name = "faculty_id")
+    private Long facultyId;
+
     @Column(name = "location")
     private String location;
 

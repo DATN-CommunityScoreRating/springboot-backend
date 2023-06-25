@@ -20,6 +20,7 @@ public class CommunityBKDNPrincipal {
     private String studentId;
     private String role;
     private Integer score;
+    private Long roleId;
 
     public Boolean isAdmin(){
         return role.equalsIgnoreCase(CommunityBKDNPermission.Role.ADMIN);
@@ -27,5 +28,21 @@ public class CommunityBKDNPrincipal {
 
     public Boolean isStudent(){
         return role.equalsIgnoreCase(CommunityBKDNPermission.Role.STUDENT);
+    }
+
+    public Boolean isFaculty() {
+        return role.equalsIgnoreCase(CommunityBKDNPermission.Role.FACULTY);
+    }
+
+    public Boolean isUnion() {
+        return role.equalsIgnoreCase(CommunityBKDNPermission.Role.UNION);
+    }
+
+    public Boolean isYouthUnion(){
+        return role.equalsIgnoreCase(CommunityBKDNPermission.Role.YOUTH_UNION);
+    }
+
+    public Boolean isClass(){
+        return role.equalsIgnoreCase(CommunityBKDNPermission.Role.CLASS);
     }
 }

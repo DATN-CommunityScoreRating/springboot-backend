@@ -22,6 +22,7 @@ public class SecurityUtils {
             var principal = userRepository.findByUsername(username).get();
             return CommunityBKDNPrincipal.newBuilder()
                     .setUsername(username)
+                    .setRoleId(principal.getRole().getRoleId())
                     .setUserId(principal.getUserId())
                     .setScore(principal.getScore())
                     .setEmail(principal.getEmail())
