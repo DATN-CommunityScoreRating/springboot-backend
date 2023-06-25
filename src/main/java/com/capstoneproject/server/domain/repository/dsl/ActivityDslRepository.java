@@ -38,7 +38,7 @@ public class ActivityDslRepository {
     private final QActivityEntity activity = QActivityEntity.activityEntity;
     private final QUserActivityEntity userActivity = QUserActivityEntity.userActivityEntity;
 
-    public Page<ActivityProjection> listActivity(ListActivitiesRequest request, CommunityBKDNPrincipal principal){
+    public Page<ActivityProjection> listActivity(ListActivitiesRequest request, CommunityBKDNPrincipal principal, Long facultyId){
         var page = RequestUtils.getPage(request.getPage());
         var size = RequestUtils.getSize(request.getSize());
         var offset = page * size;
@@ -56,8 +56,16 @@ public class ActivityDslRepository {
                                 .exists()))
                 .from(activity);
 
+        if (facultyId != null){
+            query.where(activity.facultyId.isNull().or(activity.facultyId.eq(facultyId)));
+        }
+
         if (principal.isStudent()) {
             query.where(activity.startRegister.loe(DateTimeExpression.currentTimestamp(Timestamp.class)));
+        }
+
+        if (principal.isFaculty() || principal.isYouthUnion()){
+            query.where(activity.createUserId.eq(principal.getUserId()));
         }
 
         if (request.getIsRegistered() != null && request.getIsRegistered()){

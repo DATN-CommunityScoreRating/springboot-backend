@@ -1,5 +1,6 @@
 package com.capstoneproject.server.domain.repository.dsl;
 
+import com.capstoneproject.server.common.constants.CommunityBKDNPermission;
 import com.capstoneproject.server.common.enums.SortDirection;
 import com.capstoneproject.server.domain.dto.Page;
 import com.capstoneproject.server.domain.entity.QClassEntity;
@@ -34,7 +35,7 @@ public class UserDslRepository {
                 .from(user);
 
         if (classId != null && classId > 0){
-            query.where(user.clazz.classId.eq(classId));
+            query.where(user.clazz.classId.eq(classId).and(user.role.roleName.eq(CommunityBKDNPermission.Role.STUDENT)));
         }
 
         if (facultyId != null && facultyId > 0){

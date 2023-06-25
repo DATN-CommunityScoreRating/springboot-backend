@@ -153,7 +153,8 @@ public class ClearProofServiceImpl implements ClearProofService {
     @Override
     public Response<PageDTO<StudentClearProofDTO>> findAllClearProof(ListClearProofRequest request) {
         var principal = securityUtils.getPrincipal();
-        var clearProofs = clearProofDslRepository.listClearProof(request, principal);
+        var user = userRepository.findByIdAndFetchRoleFacultyAndClass(principal.getUserId()).get();
+        var clearProofs = clearProofDslRepository.listClearProof(request, principal, user);
         return Response.<PageDTO<StudentClearProofDTO>>newBuilder()
                 .setSuccess(true)
                 .setData(PageDTO.<StudentClearProofDTO>builder()

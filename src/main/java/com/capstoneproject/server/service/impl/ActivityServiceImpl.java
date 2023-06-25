@@ -57,6 +57,7 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public Response<OnlyIDDTO> addActivity(AddActivityRequest request) {
+        var principal = securityUtils.getPrincipal();
         List<ErrorDTO> errors = new ArrayList<>();
         validateActivity(request, errors);
 
@@ -77,6 +78,10 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setScore(request.getScore());
         activity.setMaxQuantity(request.getMaxQuantity());
         activity.setLocation(request.getLocation());
+        if (principal.isFaculty()){
+            var user = userRepository.findById(principal.getUserId()).get();
+            activity.setFacultyId(user.getFacultyId());
+        }
         activity.setCreateUserId(securityUtils.getPrincipal().getUserId());
         activity.setCreateDate(new Timestamp(System.currentTimeMillis()));
         activity.setModifyDate(new Timestamp(System.currentTimeMillis()));
@@ -108,7 +113,8 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     public Response<PageDTO<ActivityDTO>> listActivity(ListActivitiesRequest request) {
         var principal = securityUtils.getPrincipal();
-        var activityPage = activityDslRepository.listActivity(request, principal);
+        var userEntity =userRepository.findByIdAndFetchRoleFacultyAndClass(principal.getUserId()).get();
+        var activityPage = activityDslRepository.listActivity(request, principal, principal.isStudent() ? userEntity.getClazz().getFaculty().getFacultyId() : null);
 
 
         return Response.<PageDTO<ActivityDTO>>newBuilder()
