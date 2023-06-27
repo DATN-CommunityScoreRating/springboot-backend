@@ -27,7 +27,8 @@ public class Constant {
     public static final List<String> UN_AUTHENTICATION_PATH = List.of(LOGIN_PATH, REFRESH_TOKEN_PATH);
 
     public static class KAFKA {
-        public static final String TOPIC = "community_score.student_registration";
+        public static final String STUDENT_REGISTRATION_TOPIC = "community_score.student_registration";
+        public static final String SEND_CLEAR_PROOF_TOPIC = "community_score.send_clear_proof";
     }
 
     public static final String IMAGE_TAG_REGEX = "src=\"(data:image/[^;]+;base64[^\"]+)\"";

@@ -28,4 +28,8 @@ public interface ActivityService {
     Response<PageDTO<ActivityDTO>> myActivity(MyActivityRequest request);
 
     Response<NoContentDTO> cancelActivity(Long activityId);
+
+    Response<OnlyIDDTO> registrationActivityKafka(RegistrationActivityRequest request);
+
+    Response<NoContentDTO> cancelActivityKafka(Long activityId);
 }

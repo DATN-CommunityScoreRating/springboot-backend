@@ -1,8 +1,7 @@
 package com.capstoneproject.server.controller;
 
 import com.capstoneproject.server.kafka.message.SimpleMessage;
-import com.capstoneproject.server.kafka.service.StudentActivityConsumerService;
-import com.capstoneproject.server.kafka.service.StudentActivityProducerService;
+import com.capstoneproject.server.kafka.producer.StudentActivityProducer;
 import com.capstoneproject.server.payload.response.NoContentDTO;
 import com.capstoneproject.server.payload.response.Response;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 public class TestController {
-    private final StudentActivityProducerService service;
+    private final StudentActivityProducer service;
 
     @GetMapping("sendMessge")
     public Response<NoContentDTO> sendMessage(@RequestParam(value = "message", required = true) String message){

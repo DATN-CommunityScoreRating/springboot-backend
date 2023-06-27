@@ -34,6 +34,15 @@ public class ClearProofController {
         return clearProofService.sendActivityClearProof(request);
     }
 
+    @PostMapping("kafka/activities")
+    @Secured(value = {
+            CommunityBKDNPermission.Role.STUDENT
+    })
+    @Operation(summary = "Student send activity clear proof")
+    public Response<OnlyIDDTO> sendActivityClearProofKafka(@RequestBody SendActivityRequest request){
+        return clearProofService.sendActivityClearProofKafka(request);
+    }
+
     @GetMapping("activities/{id}")
     public Response<ActivityClearProofDTO> getActivityClearProof(@PathVariable("id") Long userActivityId){
         return clearProofService.getActivityClearProof(userActivityId);
@@ -52,6 +61,11 @@ public class ClearProofController {
     @PostMapping
     public Response<OnlyIDDTO> sendClearProof(@RequestBody ClearProofRequest request){
         return clearProofService.sendClearProof(request);
+    }
+
+    @PostMapping("kafka")
+    public Response<OnlyIDDTO> sendClearProofKafka(@RequestBody ClearProofRequest request){
+        return clearProofService.sendClearProofKafka(request);
     }
 
     @GetMapping
