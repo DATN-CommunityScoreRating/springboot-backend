@@ -29,4 +29,8 @@ public interface ClearProofService {
     Response<OnlyIDDTO> cancelClearProof(Long clearProofId);
 
     Response<ActivityClearProofDTO> getActivityClearProof(Long clearProofId);
+
+    Response<OnlyIDDTO> sendActivityClearProofKafka(SendActivityRequest request);
+
+    Response<OnlyIDDTO> sendClearProofKafka(ClearProofRequest request);
 }

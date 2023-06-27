@@ -16,6 +16,8 @@ import com.capstoneproject.server.domain.repository.UserActivityRepository;
 import com.capstoneproject.server.domain.repository.UserRepository;
 import com.capstoneproject.server.domain.repository.dsl.ActivityDslRepository;
 import com.capstoneproject.server.exception.ObjectNotFoundException;
+import com.capstoneproject.server.kafka.message.RegistrationActivityMessage;
+import com.capstoneproject.server.kafka.producer.StudentActivityProducer;
 import com.capstoneproject.server.payload.request.activity.*;
 import com.capstoneproject.server.payload.response.*;
 import com.capstoneproject.server.payload.response.activity.ActivityDTO;
@@ -52,6 +54,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final SecurityUtils securityUtils;
     private final PrefetchEntityProvider prefetchEntityProvider;
     private final UserActivityRepository userActivityRepository;
+    private final StudentActivityProducer studentActivityProducerService;
     private final CloudinaryUtils cloudinaryUtils;
 
     @Override
@@ -324,6 +327,69 @@ public class ActivityServiceImpl implements ActivityService {
         var userActivity = userActivityRepository.findByActivityIdAndUserId(activityId, principal.getUserId())
                 .orElseThrow(() -> new ObjectNotFoundException("activityId", activityId));
         return deleteUserActivity(userActivity.getUserActivityId());
+    }
+
+    @Override
+    public Response<OnlyIDDTO> registrationActivityKafka(RegistrationActivityRequest request) {
+        var userId = securityUtils.getPrincipal().getUserId();
+        var activity = activityRepository.findById(request.getActivityId())
+                .orElseThrow(() -> new ObjectNotFoundException("activityId", request.getActivityId()));
+
+        ErrorCode code = null;
+        Date now = new Date();
+        if (activity.getStartRegister().after(now) || activity.getEndRegister().before(now)) {
+            code = ErrorCode.OUTSIDE_REGISTRATION_PERIOD;
+        }
+
+        List<Long> userRegisted = userActivityRepository.getAllUserIdRegistedActivity(request.getActivityId());
+
+        if (code == null && userRegisted.contains(userId)){
+            code = ErrorCode.ALREADY_EXIST;
+        }
+
+        if (code == null && userRegisted.size() >= activity.getMaxQuantity()){
+            code = ErrorCode.ENOUGH_QUANTITY;
+        }
+
+        if (code != null) {
+            return Response.<OnlyIDDTO>newBuilder()
+                    .setSuccess(false)
+                    .setErrorCode(code)
+                    .setMessage("Can't not registration activity")
+                    .build();
+        }
+
+        RegistrationActivityMessage message = new RegistrationActivityMessage();
+        message.setActivityId(activity.getActivityId());
+        message.setUserId(userId);
+
+        studentActivityProducerService.studentRegistration(message);
+
+        return Response.<OnlyIDDTO>newBuilder()
+                .setSuccess(true)
+                .setData(OnlyIDDTO.builder()
+                        .id(activity.getActivityId())
+                        .build())
+                .build();
+    }
+
+    @Override
+    public Response<NoContentDTO> cancelActivityKafka(Long activityId) {
+        var principal = securityUtils.getPrincipal();
+        var userActivity = userActivityRepository.findByActivityIdAndUserId(activityId, principal.getUserId())
+                .orElseThrow(() -> new ObjectNotFoundException("activityId", activityId));
+
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+//        TODO: Validate
+        if (userActivity.getActivity().getStartDate().before(now)){
+            return Response.<NoContentDTO>newBuilder()
+                    .setSuccess(false)
+                    .setErrorCode(ErrorCode.ACTIVITY_GOING_ON)
+                    .setMessage("Can't not update activity going on")
+                    .build();
+        }
+        return null;
     }
 
     private String getActivityStatus(Timestamp startDate, Timestamp endDate, Timestamp startRegister, Timestamp endRegister, int totalParticipant, int maxQuantity) {

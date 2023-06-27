@@ -52,6 +52,15 @@ public class ActivityController {
         return activityService.registrationActivity(request);
     }
 
+    @Operation(summary = "Student registration acvitity use Kafka")
+    @Secured(value = {
+            CommunityBKDNPermission.Role.STUDENT
+    })
+    @PostMapping("kafka/registration")
+    public Response<OnlyIDDTO> registrationActivityKafka(@RequestBody RegistrationActivityRequest request){
+        return activityService.registrationActivityKafka(request);
+    }
+
     @GetMapping("{id}/students")
     @Operation(summary = "Get student registration activity")
     public Response<PageDTO<StudentActivityDTO>> getUserRegisterActivity(@PathVariable("id") Long activityId, @ModelAttribute UserActivityRequest request){
@@ -86,6 +95,12 @@ public class ActivityController {
     @DeleteMapping("cancel/{id}")
     public Response<NoContentDTO> cancelActivity(@PathVariable("id") Long activityId){
         return activityService.cancelActivity(activityId);
+    }
+
+    @Operation(summary = "Cancel my activity")
+    @DeleteMapping("kafka/cancel/{id}")
+    public Response<NoContentDTO> cancelActivityKafka(@PathVariable("id") Long activityId){
+        return activityService.cancelActivityKafka(activityId);
     }
 
 }

@@ -10,6 +10,9 @@ import com.capstoneproject.server.domain.repository.UserActivityRepository;
 import com.capstoneproject.server.domain.repository.UserRepository;
 import com.capstoneproject.server.domain.repository.dsl.ClearProofDslRepository;
 import com.capstoneproject.server.exception.ObjectNotFoundException;
+import com.capstoneproject.server.kafka.message.SendActivityClearProofMessage;
+import com.capstoneproject.server.kafka.message.SendClearProofMessage;
+import com.capstoneproject.server.kafka.producer.ClearProofKafkaProducer;
 import com.capstoneproject.server.payload.request.SendActivityRequest;
 import com.capstoneproject.server.payload.request.clearProof.ClearProofRequest;
 import com.capstoneproject.server.payload.request.clearProof.ConfirmClearProofRequest;
@@ -42,6 +45,7 @@ public class ClearProofServiceImpl implements ClearProofService {
     private final UserRepository userRepository;
     private final CloudinaryUtils cloudinaryUtils;
     private final ClearProofDslRepository clearProofDslRepository;
+    private final ClearProofKafkaProducer clearProofKafkaProducer;
 
     @Override
     public Response<OnlyIDDTO> sendActivityClearProof(SendActivityRequest request) {
@@ -153,7 +157,7 @@ public class ClearProofServiceImpl implements ClearProofService {
     @Override
     public Response<PageDTO<StudentClearProofDTO>> findAllClearProof(ListClearProofRequest request) {
         var principal = securityUtils.getPrincipal();
-        var user = userRepository.findByIdAndFetchRoleFacultyAndClass(principal.getUserId()).get();
+        var user = userRepository.findByIdAndFetchRoleFacultyAndClass(principal.getUserId()).orElseThrow();
         var clearProofs = clearProofDslRepository.listClearProof(request, principal, user);
         return Response.<PageDTO<StudentClearProofDTO>>newBuilder()
                 .setSuccess(true)
@@ -282,6 +286,56 @@ public class ClearProofServiceImpl implements ClearProofService {
                         .setDescription(clearProof.getDescription())
                         .setStudentId(clearProof.getUser().getStudentId())
                         .setStudentFullName(clearProof.getUser().getFullName())
+                        .build())
+                .build();
+    }
+
+    @Override
+    public Response<OnlyIDDTO> sendActivityClearProofKafka(SendActivityRequest request) {
+        long userId = securityUtils.getPrincipal().getUserId();
+        long activityId = request.getActivityId();
+        var userActivity = userActivityRepository.findByActivityIdAndUserId(activityId, userId)
+                .orElseThrow(() -> new ObjectNotFoundException("activityId, userId", activityId));
+        clearProofKafkaProducer.sendActivityClearProof(SendActivityClearProofMessage.builder()
+                        .userActivityId(userActivity.getUserActivityId())
+                        .name(request.getName())
+                        .description(request.getDescription())
+                .build());
+        return Response.<OnlyIDDTO>newBuilder()
+                .setSuccess(true)
+                .setData(OnlyIDDTO.builder()
+                        .id(userActivity.getUserActivityId())
+                        .build())
+                .build();
+    }
+
+    @Override
+    public Response<OnlyIDDTO> sendClearProofKafka(ClearProofRequest request) {
+//        TODO validate
+        try {
+            DateTimeUtils.string2Timestamp(request.getStartDate());
+            DateTimeUtils.string2Timestamp(request.getEndDate());
+        } catch (Exception e){
+            return Response.<OnlyIDDTO>newBuilder()
+                    .setSuccess(false)
+                    .setErrorCode(ErrorCode.DATE_FORMAT_INVALID)
+                    .build();
+        }
+
+        var principal = securityUtils.getPrincipal();
+
+        clearProofKafkaProducer.sendClearProof(SendClearProofMessage.newBuilder()
+                        .setName(request.getName())
+                        .setDescription(request.getDescription())
+                        .setSubCategoryId(request.getSubCategoryId())
+                        .setStartDate(request.getStartDate())
+                        .setEndDate(request.getEndDate())
+                        .setUserId(principal.getUserId())
+                .build());
+        return Response.<OnlyIDDTO>newBuilder()
+                .setSuccess(true)
+                .setData(OnlyIDDTO.builder()
+                        .id(principal.getUserId())
                         .build())
                 .build();
     }
