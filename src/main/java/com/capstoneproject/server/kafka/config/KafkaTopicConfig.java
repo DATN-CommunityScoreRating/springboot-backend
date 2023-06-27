@@ -15,7 +15,7 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaTopicConfig {
     @Bean
     public NewTopic topic(){
-        return TopicBuilder.name(Constant.KAFKA.TOPIC)
+        return TopicBuilder.name(Constant.KAFKA.STUDENT_REGISTRATION_TOPIC)
                 .partitions(10)
                 .replicas(3)
                 .build();
