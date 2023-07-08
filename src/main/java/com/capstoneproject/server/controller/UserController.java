@@ -81,4 +81,11 @@ public class UserController {
     }
 
 
+    @Operation(summary = "Get my info")
+    @GetMapping("my-account")
+    public Response<UserDTO> getMyAccount(){
+        return userService.getMyAccount();
+    }
+
+
 }

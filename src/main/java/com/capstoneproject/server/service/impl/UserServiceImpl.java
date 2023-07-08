@@ -10,6 +10,7 @@ import com.capstoneproject.server.domain.entity.RoleEntity;
 import com.capstoneproject.server.domain.entity.UserEntity;
 import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
 import com.capstoneproject.server.domain.repository.ClassRepository;
+import com.capstoneproject.server.domain.repository.FacultyRepository;
 import com.capstoneproject.server.domain.repository.RoleRepository;
 import com.capstoneproject.server.domain.repository.UserRepository;
 import com.capstoneproject.server.domain.repository.dsl.UserDslRepository;
@@ -58,6 +59,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private final ClassRepository classRepository;
     private final JacksonRedisUtil jacksonRedisUtil;
     private final SecurityUtils securityUtils;
+    private final FacultyRepository facultyRepository;
     private final PrefetchEntityProvider prefetchEntityProvider;
 
     @Override
@@ -314,4 +316,34 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                         .build())
                 .build();
     }
+
+    @Override
+    public Response<UserDTO> getMyAccount() {
+        var principal = securityUtils.getPrincipal();
+        var user = userRepository.findByIdAndFetchRoleFacultyAndClassCourse(securityUtils.getPrincipal().getUserId()).orElseThrow();
+
+        var responseBuilder = UserDTO.builder()
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .score(user.getScore());
+        if (principal.isFaculty() || principal.isUnion() || principal.isClass()){
+            responseBuilder.faculty(prefetchEntityProvider.getFacultyEntityMap().get(user.getFacultyId()).getFacultyName());
+        }
+
+        if (principal.isClass() || principal.isStudent()){
+            responseBuilder.course(prefetchEntityProvider.getCourseEntityMap().get(user.getClazz().getCourseEntity().getCourseId()).getName())
+                    .className(user.getClazz().getClassName());
+        }
+
+        if (principal.isStudent()){
+            responseBuilder.studentId(user.getStudentId());
+            responseBuilder.faculty(prefetchEntityProvider.getFacultyEntityMap().get(user.getClazz().getFaculty().getFacultyId()).getFacultyName());
+        }
+        return Response.<UserDTO>newBuilder()
+                .setSuccess(true)
+                .setData(responseBuilder.build())
+                .build();
+    }
+
 }
