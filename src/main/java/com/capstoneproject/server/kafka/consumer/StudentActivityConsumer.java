@@ -52,7 +52,7 @@ public class StudentActivityConsumer {
             studentActivityService.cancelRegistrationActivity(cancelUserActivityMessage);
 
         } catch (Exception e) {
-            log.error("Cannot cancel activity for userActivityId {}", cancelUserActivityMessage.getUserActivityId());
+            log.error("Cannot cancel activity for activityId {}", cancelUserActivityMessage.getActivityId());
         }
     }
 
