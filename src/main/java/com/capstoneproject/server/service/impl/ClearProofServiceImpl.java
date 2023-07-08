@@ -28,6 +28,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.stream.Collectors;
 
 /**
@@ -134,8 +136,10 @@ public class ClearProofServiceImpl implements ClearProofService {
         clearProof.setActivityCategoryId(request.getSubCategoryId());
         clearProof.setUser(user);
         try {
-            clearProof.setStartDate(DateTimeUtils.string2Timestamp(request.getStartDate()));
-            clearProof.setEndDate(DateTimeUtils.string2Timestamp(request.getEndDate()));
+            Date startDate = DateTimeUtils.move2BeginTimeOfDay(DateTimeUtils.string2Timestamp(request.getStartDate()));
+            Date endDate = DateTimeUtils.move2EndTimeOfDay(DateTimeUtils.string2Timestamp(request.getEndDate()));
+            clearProof.setStartDate(new Timestamp(startDate.getTime()));
+            clearProof.setEndDate(new Timestamp(endDate.getTime()));
         } catch (Exception e){
             return Response.<OnlyIDDTO>newBuilder()
                     .setSuccess(false)

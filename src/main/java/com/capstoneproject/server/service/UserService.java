@@ -22,4 +22,6 @@ public interface UserService {
     Response<UploadDTO<UploadStudentDTO>> uploadStudent(MultipartFile request);
 
     Response<ImportDTO> importStudent(ImportRequest request);
+
+    Response<UserDTO> getMyAccount();
 }

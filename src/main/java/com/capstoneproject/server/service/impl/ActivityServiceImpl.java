@@ -16,6 +16,7 @@ import com.capstoneproject.server.domain.repository.UserActivityRepository;
 import com.capstoneproject.server.domain.repository.UserRepository;
 import com.capstoneproject.server.domain.repository.dsl.ActivityDslRepository;
 import com.capstoneproject.server.exception.ObjectNotFoundException;
+import com.capstoneproject.server.kafka.message.CancelUserActivityMessage;
 import com.capstoneproject.server.kafka.message.RegistrationActivityMessage;
 import com.capstoneproject.server.kafka.producer.StudentActivityProducer;
 import com.capstoneproject.server.payload.request.activity.*;
@@ -90,10 +91,14 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setModifyDate(new Timestamp(System.currentTimeMillis()));
 
         try {
-            activity.setStartDate(DateTimeUtils.string2Timestamp(request.getStartDate()));
-            activity.setEndDate(DateTimeUtils.string2Timestamp(request.getEndDate()));
-            activity.setStartRegister(DateTimeUtils.string2Timestamp(request.getStartRegister()));
-            activity.setEndRegister(DateTimeUtils.string2Timestamp(request.getEndRegister()));
+            Date startDate = DateTimeUtils.move2BeginTimeOfDay(DateTimeUtils.string2Timestamp(request.getStartDate()));
+            Date endDate = DateTimeUtils.move2EndTimeOfDay(DateTimeUtils.string2Timestamp(request.getEndDate()));
+            Date startRegister = DateTimeUtils.move2BeginTimeOfDay(DateTimeUtils.string2Timestamp(request.getStartRegister()));
+            Date endRegister = DateTimeUtils.move2EndTimeOfDay(DateTimeUtils.string2Timestamp(request.getEndRegister()));
+            activity.setStartDate(new Timestamp(startDate.getTime()));
+            activity.setEndDate(new Timestamp(endDate.getTime()));
+            activity.setStartRegister(new Timestamp(startRegister.getTime()));
+            activity.setEndRegister(new Timestamp(endRegister.getTime()));
         } catch (ParseException e){
             e.printStackTrace();
             return Response.<OnlyIDDTO>newBuilder()
@@ -389,7 +394,14 @@ public class ActivityServiceImpl implements ActivityService {
                     .setMessage("Can't not update activity going on")
                     .build();
         }
-        return null;
+
+        studentActivityProducerService.cancelRegistrationActivity(CancelUserActivityMessage.builder()
+                        .userActivityId(userActivity.getUserActivityId())
+                .build());
+        return Response.<NoContentDTO>newBuilder()
+                .setSuccess(true)
+                .setData(NoContentDTO.builder().build())
+                .build();
     }
 
     private String getActivityStatus(Timestamp startDate, Timestamp endDate, Timestamp startRegister, Timestamp endRegister, int totalParticipant, int maxQuantity) {
