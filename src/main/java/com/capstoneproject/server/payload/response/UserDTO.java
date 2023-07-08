@@ -28,5 +28,6 @@ public class UserDTO {
     private String className;
     private Long classId;
     private String faculty;
+    private String course;
 
 }

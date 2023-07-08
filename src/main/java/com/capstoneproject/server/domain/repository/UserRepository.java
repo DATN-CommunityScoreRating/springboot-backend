@@ -32,6 +32,15 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     Optional<UserEntity> findByIdAndFetchRoleFacultyAndClass(@Param("userId") Long userId);
 
     @Query("SELECT u FROM UserEntity u " +
+            "LEFT JOIN FETCH u.role r " +
+            "LEFT JOIN FETCH u.clazz l " +
+            "LEFT JOIN FETCH l.faculty " +
+            "LEFT JOIN FETCH l.courseEntity " +
+            "WHERE u.userId = :userId")
+
+    Optional<UserEntity> findByIdAndFetchRoleFacultyAndClassCourse(@Param("userId") Long userId);
+
+    @Query("SELECT u FROM UserEntity u " +
             "WHERE u.studentId in (:studentIds)")
     List<UserEntity> findByStudentIds(@Param("studentIds")Collection<String> studentIds);
 

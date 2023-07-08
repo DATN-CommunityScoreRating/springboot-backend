@@ -19,6 +19,9 @@ import com.capstoneproject.server.util.DateTimeUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.util.Date;
+
 /**
  * @author dai.le-anh
  * @since 6/27/2023
@@ -62,8 +65,10 @@ public class ClearProofKafkaServiceImpl implements ClearProofKafkaService {
         clearProof.setActivityCategoryId(message.getSubCategoryId());
         clearProof.setUser(user);
         try {
-            clearProof.setStartDate(DateTimeUtils.string2Timestamp(message.getStartDate()));
-            clearProof.setEndDate(DateTimeUtils.string2Timestamp(message.getEndDate()));
+            Date startDate = DateTimeUtils.move2BeginTimeOfDay(DateTimeUtils.string2Timestamp(message.getStartDate()));
+            Date endDate = DateTimeUtils.move2EndTimeOfDay(DateTimeUtils.string2Timestamp(message.getEndDate()));
+            clearProof.setStartDate(new Timestamp(startDate.getTime()));
+            clearProof.setEndDate(new Timestamp(endDate.getTime()));
         } catch (Exception e){
             e.printStackTrace();
         }
