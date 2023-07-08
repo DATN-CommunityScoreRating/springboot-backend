@@ -13,5 +13,6 @@ import lombok.*;
 @Setter
 @Builder
 public class CancelUserActivityMessage {
-    private Long userActivityId;
+    private Long userId;
+    private Long activityId;
 }

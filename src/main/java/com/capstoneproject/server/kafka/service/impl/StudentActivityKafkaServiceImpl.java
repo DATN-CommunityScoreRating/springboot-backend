@@ -47,8 +47,8 @@ public class StudentActivityKafkaServiceImpl implements StudentActivityKafkaServ
 
     @Override
     public void cancelRegistrationActivity(CancelUserActivityMessage cancelUserActivityMessage) {
-        var userActivity = userActivityRepository.findById(cancelUserActivityMessage.getUserActivityId())
-                .orElseThrow(() -> new ObjectNotFoundException("userActivityId", cancelUserActivityMessage.getUserActivityId()));
+        var userActivity = userActivityRepository.findByActivityIdAndUserId(cancelUserActivityMessage.getActivityId(), cancelUserActivityMessage.getUserId())
+                .orElseThrow(() -> new ObjectNotFoundException("activityId", cancelUserActivityMessage.getActivityId()));
 
         userActivityRepository.delete(userActivity);
     }

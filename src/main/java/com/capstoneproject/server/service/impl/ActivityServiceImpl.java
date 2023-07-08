@@ -1,5 +1,6 @@
 package com.capstoneproject.server.service.impl;
 
+import com.capstoneproject.server.cache.JacksonRedisUtil;
 import com.capstoneproject.server.common.CommunityBKDNPrincipal;
 import com.capstoneproject.server.common.constants.CommunityBKDNPermission;
 import com.capstoneproject.server.common.constants.Constant;
@@ -11,6 +12,7 @@ import com.capstoneproject.server.domain.entity.ActivityEntity;
 import com.capstoneproject.server.domain.entity.UserActivityEntity;
 import com.capstoneproject.server.domain.entity.UserEntity;
 import com.capstoneproject.server.domain.prefetch.PrefetchEntityProvider;
+import com.capstoneproject.server.domain.projection.ActivityProjection;
 import com.capstoneproject.server.domain.repository.ActivityRepository;
 import com.capstoneproject.server.domain.repository.UserActivityRepository;
 import com.capstoneproject.server.domain.repository.UserRepository;
@@ -35,6 +37,7 @@ import org.springframework.stereotype.Service;
 import javax.transaction.Transactional;
 import java.sql.Timestamp;
 import java.text.ParseException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -57,6 +60,7 @@ public class ActivityServiceImpl implements ActivityService {
     private final UserActivityRepository userActivityRepository;
     private final StudentActivityProducer studentActivityProducerService;
     private final CloudinaryUtils cloudinaryUtils;
+    private final JacksonRedisUtil jacksonRedisUtil;
 
     @Override
     @Transactional
@@ -109,6 +113,7 @@ public class ActivityServiceImpl implements ActivityService {
         }
 
         var savedActivity = activityRepository.save(activity);
+        jacksonRedisUtil.put(String.format("activity_%s", savedActivity.getActivityId()), new ArrayList<Long>(), Duration.ofMillis(activity.getEndRegister().getTime() - activity.getStartRegister().getTime()));
 
         return Response.<OnlyIDDTO>newBuilder()
                 .setSuccess(true)
@@ -121,9 +126,8 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     public Response<PageDTO<ActivityDTO>> listActivity(ListActivitiesRequest request) {
         var principal = securityUtils.getPrincipal();
-        var userEntity =userRepository.findByIdAndFetchRoleFacultyAndClass(principal.getUserId()).get();
+        var userEntity = userRepository.findByIdAndFetchRoleFacultyAndClass(principal.getUserId()).get();
         var activityPage = activityDslRepository.listActivity(request, principal, principal.isStudent() ? userEntity.getClazz().getFaculty().getFacultyId() : null);
-
 
         return Response.<PageDTO<ActivityDTO>>newBuilder()
                 .setSuccess(true)
@@ -146,12 +150,20 @@ public class ActivityServiceImpl implements ActivityService {
                                         .setTotalParticipant(Math.toIntExact(i.getTotalParticipant()))
                                         .setOrganization(getOrganization(i.getCreateUserId()))
                                         .setStatus(getActivityStatus(i.getStartDate(), i.getEndDate(), i.getStartRegister(), i.getEndRegister(), Math.toIntExact(i.getTotalParticipant()), i.getMaxQuantity()))
-                                        .setRegistered(i.getRegistered())
+                                        .setRegistered(getRegistered(i, principal.getUserId()))
                                         .setNeedConfirmation(!principal.isStudent() && i.getNeedConfirmation())
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
                 .build();
+    }
+
+    private Boolean getRegistered(ActivityProjection projection, Long userId) {
+        List<Long> userRegistered = jacksonRedisUtil.getAsList(String.format("activity_%s", projection.getActivityId()), Long.class);
+        if (userRegistered == null){
+            return projection.getRegistered();
+        }
+        return userRegistered.contains(userId);
     }
 
     @Override
@@ -346,15 +358,29 @@ public class ActivityServiceImpl implements ActivityService {
             code = ErrorCode.OUTSIDE_REGISTRATION_PERIOD;
         }
 
-        List<Long> userRegisted = userActivityRepository.getAllUserIdRegistedActivity(request.getActivityId());
+        List<Long> userRegisted = null;
 
-        if (code == null && userRegisted.contains(userId)){
-            code = ErrorCode.ALREADY_EXIST;
+        List<Long> userRegistered = jacksonRedisUtil.getAsList(String.format("activity_%s", activity.getActivityId()), Long.class);
+
+        if (userRegistered != null){
+            if (code == null && userRegistered.contains(userId)){
+                code = ErrorCode.ALREADY_EXIST;
+            }
+
+            if (code == null && userRegistered.size() >= activity.getMaxQuantity()){
+                code = ErrorCode.ENOUGH_QUANTITY;
+            }
+        } else {
+            userRegisted = userActivityRepository.getAllUserIdRegistedActivity(request.getActivityId());
+            if (code == null && userRegisted.contains(userId)){
+                code = ErrorCode.ALREADY_EXIST;
+            }
+
+            if (code == null && userRegisted.size() >= activity.getMaxQuantity()){
+                code = ErrorCode.ENOUGH_QUANTITY;
+            }
         }
 
-        if (code == null && userRegisted.size() >= activity.getMaxQuantity()){
-            code = ErrorCode.ENOUGH_QUANTITY;
-        }
 
         if (code != null) {
             return Response.<OnlyIDDTO>newBuilder()
@@ -369,7 +395,16 @@ public class ActivityServiceImpl implements ActivityService {
         message.setUserId(userId);
 
         studentActivityProducerService.studentRegistration(message);
+        if (userRegistered != null){
+            userRegistered.add(userId);
+            jacksonRedisUtil.put(String.format("activity_%s", activity.getActivityId()), userRegistered, Duration.ofMillis(activity.getEndRegister().getTime() - activity.getStartRegister().getTime()));
 
+        } else {
+            if (!userRegisted.contains(userId)){
+                userRegisted.add(userId);
+            }
+            jacksonRedisUtil.put(String.format("activity_%s", activity.getActivityId()), userRegisted, Duration.ofMillis(activity.getEndRegister().getTime() - activity.getStartRegister().getTime()));
+        }
         return Response.<OnlyIDDTO>newBuilder()
                 .setSuccess(true)
                 .setData(OnlyIDDTO.builder()
@@ -381,13 +416,16 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     public Response<NoContentDTO> cancelActivityKafka(Long activityId) {
         var principal = securityUtils.getPrincipal();
-        var userActivity = userActivityRepository.findByActivityIdAndUserId(activityId, principal.getUserId())
-                .orElseThrow(() -> new ObjectNotFoundException("activityId", activityId));
-
+        var activity = activityRepository.findById(activityId).orElseThrow(() ->
+                new ObjectNotFoundException("activityId", activityId));
+        List<Long> userRegistered = jacksonRedisUtil.getAsList(String.format("activity_%s", activity.getActivityId()), Long.class);
+        if (userRegistered != null && !userRegistered.contains(principal.getUserId())){
+            throw new ObjectNotFoundException("activityId", activityId);
+        }
         Timestamp now = new Timestamp(System.currentTimeMillis());
 
 //        TODO: Validate
-        if (userActivity.getActivity().getStartDate().before(now)){
+        if (activity.getStartDate().before(now)){
             return Response.<NoContentDTO>newBuilder()
                     .setSuccess(false)
                     .setErrorCode(ErrorCode.ACTIVITY_GOING_ON)
@@ -395,8 +433,20 @@ public class ActivityServiceImpl implements ActivityService {
                     .build();
         }
 
+        if (userRegistered != null){
+            userRegistered = userRegistered.stream().filter(i -> !i.equals(principal.getUserId())).collect(Collectors.toList());
+        }
+
+        if (userRegistered == null || userRegistered.isEmpty()){
+            jacksonRedisUtil.evict(String.format("activity_%s", activity.getActivityId()), Long.class);
+        } else {
+            jacksonRedisUtil.put(String.format("activity_%s", activity.getActivityId()), userRegistered, Duration.ofMillis(activity.getEndRegister().getTime() - activity.getStartRegister().getTime()));
+
+        }
+
         studentActivityProducerService.cancelRegistrationActivity(CancelUserActivityMessage.builder()
-                        .userActivityId(userActivity.getUserActivityId())
+                        .activityId(activity.getActivityId())
+                        .userId(principal.getUserId())
                 .build());
         return Response.<NoContentDTO>newBuilder()
                 .setSuccess(true)
