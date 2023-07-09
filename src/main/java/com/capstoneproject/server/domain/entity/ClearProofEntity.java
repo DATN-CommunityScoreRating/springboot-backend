@@ -1,5 +1,6 @@
 package com.capstoneproject.server.domain.entity;
 
+import com.querydsl.core.annotations.QueryInit;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,6 +31,7 @@ public class ClearProofEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "user_id")
+    @QueryInit("clazz.faculty")
     private UserEntity user;
 
     @Column(name = "name")
